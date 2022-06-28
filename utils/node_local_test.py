@@ -1677,7 +1677,7 @@ class posix_tests():
         run_daos_cmd(self.conf,
                      ['container', 'set-attr',
                       self.pool.id(), container,
-                      'dfuse-ndentry-time' '100s'],
+                      'dfuse-ndentry-time', '100s'],
                      show_stdout=True)
 
         run_daos_cmd(self.conf,
