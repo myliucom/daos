@@ -74,8 +74,6 @@ ds_obj_remote_update(struct dtx_leader_handle *dlh, void *data, int idx,
 		     dtx_sub_comp_cb_t comp_cb)
 {
 	struct ds_obj_exec_arg		*obj_exec_arg = data;
-	struct obj_ec_split_req		*split_req = obj_exec_arg->args;
-	struct obj_tgt_oiod		*tgt_oiod;
 	struct daos_shard_tgt		*shard_tgt;
 	crt_endpoint_t			 tgt_ep;
 	crt_rpc_t			*parent_req = obj_exec_arg->rpc;
@@ -83,19 +81,28 @@ ds_obj_remote_update(struct dtx_leader_handle *dlh, void *data, int idx,
 	struct dtx_sub_status		*sub;
 	struct dtx_handle		*dth = &dlh->dlh_handle;
 	struct obj_remote_cb_arg	*remote_arg = NULL;
+	struct obj_io_desc		io_descs_local[3] = { 0 };
+	struct obj_shard_iod		shard_iods_local[3] = { 0 };
+	uint64_t			offs_local[3] = { 0 };
+	struct daos_oclass_attr		*oca = &obj_exec_arg->ioc->ioc_oca;
+	uint32_t			shard;
+	struct obj_io_desc		*io_descs = NULL;
+	struct obj_shard_iod		*shard_iods = NULL;
+	bool				sent_rpc = false;
+	uint64_t			*offs = NULL;
 	struct obj_rw_in		*orw;
 	struct obj_rw_in		*orw_parent;
-	uint32_t			 tgt_idx;
 	int				 rc = 0;
 
 	D_ASSERT(idx < dlh->dlh_normal_sub_cnt + dlh->dlh_delay_sub_cnt);
 	sub = &dlh->dlh_subs[idx];
 	shard_tgt = &sub->dss_tgt;
+	shard = shard_tgt->st_shard;
 	if (DAOS_FAIL_CHECK(DAOS_OBJ_TGT_IDX_CHANGE)) {
 		/* to trigger retry on all other shards */
-		if (shard_tgt->st_shard != daos_fail_value_get()) {
+		if (shard != daos_fail_value_get()) {
 			D_DEBUG(DB_TRACE, "complete shard %d update as "
-				"-DER_TIMEDOUT.\n", shard_tgt->st_shard);
+				"-DER_TIMEDOUT.\n", shard);
 			D_GOTO(out, rc = -DER_TIMEDOUT);
 		}
 	}
@@ -124,16 +131,51 @@ ds_obj_remote_update(struct dtx_leader_handle *dlh, void *data, int idx,
 	orw_parent = crt_req_get(parent_req);
 	orw = crt_req_get(req);
 	*orw = *orw_parent;
-	if (split_req != NULL) {
-		tgt_idx = shard_tgt->st_shard;
-		tgt_oiod = obj_ec_tgt_oiod_get(split_req->osr_tgt_oiods,
-					       dlh->dlh_normal_sub_cnt + dlh->dlh_delay_sub_cnt + 1,
-					       tgt_idx - obj_exec_arg->start);
-		D_ASSERT(tgt_oiod != NULL);
-		orw->orw_iod_array.oia_oiods = tgt_oiod->oto_oiods;
-		orw->orw_iod_array.oia_oiod_nr = orw->orw_iod_array.oia_iod_nr;
-		orw->orw_iod_array.oia_offs = tgt_oiod->oto_offs;
+	if (orw_parent->orw_iod_array.oia_oiods != NULL) {
+		struct obj_shard_iod	*siod;
+		uint32_t		oiod_nr;
+		uint32_t		o_idx;
+		uint32_t		tgt = shard_tgt->st_shard_id % obj_ec_tgt_nr(oca);
+		int			i;
+
+		D_ASSERT(daos_oclass_is_ec(oca));
+		oiod_nr = orw_parent->orw_iod_array.oia_oiod_nr;
+		if (oiod_nr <= 3) {
+			io_descs = io_descs_local;
+			shard_iods = shard_iods_local;
+			offs = offs_local;
+		} else {
+			D_ALLOC_ARRAY(io_descs, oiod_nr);
+			D_ALLOC_ARRAY(shard_iods, oiod_nr);
+			D_ALLOC_ARRAY(offs, oiod_nr);
+			if (io_descs == NULL || shard_iods == NULL || offs == NULL)
+				D_GOTO(out, rc = -DER_NOMEM);
+		}
+
+		for (i = 0, o_idx = 0; i < oiod_nr; i++) {
+			if (orw_parent->orw_iod_array.oia_iods[i].iod_type == DAOS_IOD_SINGLE) {
+				io_descs[o_idx].oiod_flags |= OBJ_SIOD_SINGV;
+				io_descs[o_idx].oiod_nr = 0;
+				io_descs[o_idx].oiod_tgt_idx = obj_ec_shard_off(0 /*dkey_hash */,
+										oca, tgt);
+				io_descs[o_idx].oiod_siods = NULL;
+			} else {
+				siod = obj_shard_iod_get(&orw_parent->orw_iod_array.oia_oiods[i],
+							 tgt);
+				if (siod == NULL)
+					continue;
+				shard_iods[o_idx] = *siod;
+				io_descs[o_idx].oiod_siods = &shard_iods[i];
+				offs[o_idx] = siod->siod_off;
+			}
+			io_descs[o_idx].oiod_flags |= OBJ_SIOD_PROC_ONE;
+			o_idx++;
+		}
+		orw->orw_iod_array.oia_oiods = io_descs;
+		orw->orw_iod_array.oia_oiod_nr = oiod_nr;
+		orw->orw_iod_array.oia_offs = offs;
 	}
+
 	orw->orw_oid.id_shard = shard_tgt->st_shard_id;
 	uuid_copy(orw->orw_co_hdl, orw_parent->orw_co_hdl);
 	uuid_copy(orw->orw_co_uuid, orw_parent->orw_co_uuid);
@@ -150,10 +192,15 @@ ds_obj_remote_update(struct dtx_leader_handle *dlh, void *data, int idx,
 		D_ASSERT(sub->dss_comp == 1);
 		D_ERROR("crt_req_send failed, rc "DF_RC"\n", DP_RC(rc));
 	}
-	return rc;
-
+	sent_rpc = true;
 out:
-	if (rc) {
+	if (shard_iods != NULL && shard_iods != shard_iods_local)
+		D_FREE(shard_iods);
+	if (io_descs != NULL && io_descs != io_descs_local)
+		D_FREE(io_descs);
+	if (offs != NULL && offs != offs_local)
+		D_FREE(offs);
+	if (!sent_rpc) {
 		sub->dss_result = rc;
 		comp_cb(dlh, idx, rc);
 		if (remote_arg) {

@@ -293,5 +293,7 @@ int obj_ec_rw_req_split(daos_unit_oid_t oid, uint64_t dkey_hash, struct obj_iod_
 			struct daos_oclass_attr *oca, uint32_t tgt_nr, struct daos_shard_tgt *tgts,
 			struct obj_ec_split_req **split_req, struct obj_pool_metrics *opm);
 void obj_ec_split_req_fini(struct obj_ec_split_req *req);
+void obj_ec_metrics_process(daos_iod_t *iod, struct obj_io_desc *oiod, struct daos_oclass_attr *oca,
+			    struct obj_pool_metrics *opm);
 
 #endif /* __DAOS_OBJ_SRV_INTENRAL_H__ */

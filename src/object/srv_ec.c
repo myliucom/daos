@@ -38,7 +38,7 @@ obj_ec_is_valid_tgt(struct daos_cpd_ec_tgts *tgt_map, uint32_t map_size,
 	return false;
 }
 
-static void
+void
 obj_ec_metrics_process(daos_iod_t *iod, struct obj_io_desc *oiod, struct daos_oclass_attr *oca,
 		       struct obj_pool_metrics *opm)
 {
