@@ -1,8 +1,8 @@
-daos (2.3.101-1) unstable; urgency=medium
-  [ Johann Lombardi ]
-  * Bump version to 2.3.101
+daos (2.3.101-2) unstable; urgency=medium
+  [ Brian J. Murrell ]
+  * NOOP change to keep in parity with RPM version
 
- -- Johann Lombardi <johann.lombardi@intel.com>  Tue, 20 Sep 2022 10:00:00 -0100
+ -- Brian J. Murrell <brian.murrell@intel.com>  Thu, 6 Oct 2022 10:39:58 -0500
 
 daos (2.3.100-22) unstable; urgency=medium
   [ Jeff Olivier ]
