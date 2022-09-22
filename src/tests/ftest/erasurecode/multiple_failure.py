@@ -6,6 +6,7 @@
 from ec_utils import ErasureCodeIor
 
 
+
 class EcodOnlineMultFail(ErasureCodeIor):
     # pylint: disable=too-many-ancestors
     """
