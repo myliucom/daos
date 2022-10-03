@@ -597,6 +597,7 @@ int bio_bs_state_set(struct bio_blobstore *bbs, enum bio_bs_state new_state);
 /* bio_device.c */
 void bio_led_event_monitor(struct bio_xs_context *ctxt, uint64_t now);
 int fill_in_traddr(struct bio_dev_info *b_info, char *dev_name);
+int bio_write_super_hdr(struct bio_blobstore *bbs, struct bio_super_hdr *hdr);
 
 /* bio_config.c */
 int bio_add_allowed_alloc(const char *nvme_conf, struct spdk_env_opts *opts);

@@ -119,6 +119,12 @@ enum bio_bs_state {
 	BIO_BS_STATE_SETUP,
 };
 
+#define BIO_SUPER_HDR_MAGIC	(0xabcdef01)
+struct bio_super_hdr {
+	uint32_t		bsh_magic;
+	enum bio_bs_state	bsh_dev_state;
+};
+
 static inline void
 bio_addr_set(bio_addr_t *addr, uint16_t type, uint64_t off)
 {

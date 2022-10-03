@@ -426,6 +426,15 @@ bio_bs_state_set(struct bio_blobstore *bbs, enum bio_bs_state new_state)
 			if (rc)
 				D_ERROR("Set device state failed. "DF_RC"\n",
 					DP_RC(rc));
+			if (rc == 0) {
+				struct bio_super_hdr s_hdr = {0};
+
+				s_hdr.bsh_magic = BIO_SUPER_HDR_MAGIC;
+				s_hdr.bsh_dev_state = BIO_BS_STATE_FAULTY;
+				rc = bio_write_super_hdr(bbs, &s_hdr);
+				if (rc != 0)
+					D_ERROR("Set device state failed. "DF_RC"\n", DP_RC(rc));
+			}
 		}
 	}
 	ABT_mutex_unlock(bbs->bb_mutex);

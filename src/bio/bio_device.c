@@ -87,9 +87,10 @@ is_tgt_on_dev(struct smd_dev_info *dev_info, int tgt_idx)
 }
 
 struct blob_ops_arg {
-	ABT_eventual	boa_eventual;
-	int		boa_rc;
-	spdk_blob_id	boa_blob_id;
+	ABT_eventual		 boa_eventual;
+	int			 boa_rc;
+	spdk_blob_id		 boa_blob_id;
+	struct spdk_blob	*boa_blob;
 };
 
 static void
@@ -142,8 +143,9 @@ create_one_blob(struct spdk_blob_store *bs, uint64_t blob_sz,
 	blob_opts.num_clusters = (blob_sz + cluster_sz - 1) / cluster_sz;
 
 	spdk_bs_create_blob_ext(bs, &blob_opts, blob_create_cp, &boa);
-
+D_PRINT("[RYON] %s:%d [%s()] > Waiting\n", __FILE__, __LINE__, __FUNCTION__);
 	rc = ABT_eventual_wait(boa.boa_eventual, NULL);
+D_PRINT("[RYON] %s:%d [%s()] > Done waiting\n", __FILE__, __LINE__, __FUNCTION__);
 	if (rc != ABT_SUCCESS) {
 		rc = dss_abterr2der(rc);
 		D_ERROR("Wait eventual failed. "DF_RC"\n", DP_RC(rc));
@@ -298,6 +300,200 @@ free:
 	if (bs != NULL)
 		unload_blobstore(xs_ctxt, bs);
 }
+
+static void
+bs_get_super_cb(void *cb_arg, spdk_blob_id blobid, int bserrno)
+{
+	struct blob_ops_arg *args = cb_arg;
+
+	args->boa_blob_id = blobid;
+	args->boa_rc = bserrno;
+	args->boa_rc = daos_errno2der(-bserrno);
+	if (bserrno)
+		D_PRINT("[RYON] %s:%d [%s()] > get_super rc: "DF_RC"\n", __FILE__, __LINE__, __FUNCTION__, DP_RC(args->boa_rc));
+	else
+		D_PRINT("[RYON] %s:%d [%s()] > got superblob id: %lu \n", __FILE__, __LINE__,
+			__FUNCTION__, blobid);
+	ABT_eventual_set(args->boa_eventual, NULL, 0);
+}
+
+static int
+bs_get_super(struct spdk_blob_store *bs, spdk_blob_id *id)
+{
+	struct blob_ops_arg args = {0};
+	int rc;
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+
+	rc = ABT_eventual_create(0, &args.boa_eventual);
+	if (rc != ABT_SUCCESS)
+		return dss_abterr2der(rc);
+
+	D_PRINT("[RYON] %s:%d [%s()] > bs: %p\n", __FILE__, __LINE__, __FUNCTION__, bs);
+	spdk_bs_get_super(bs, bs_get_super_cb, &args);
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+	ABT_eventual_wait(args.boa_eventual, NULL);
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+	if (args.boa_rc == 0)
+		*id = args.boa_blob_id;
+
+	ABT_eventual_free(&args.boa_eventual);
+	return args.boa_rc;
+}
+
+static void
+bs_set_super_cb(void *cb_arg, int bserrno)
+{
+	struct blob_ops_arg *args = cb_arg;
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+
+	args->boa_rc = daos_errno2der(-bserrno);
+
+	ABT_eventual_set(args->boa_eventual, NULL, 0);
+}
+
+
+static int
+bs_set_super(struct spdk_blob_store *bs, spdk_blob_id blobid)
+{
+	struct blob_ops_arg args = {0};
+	int rc;
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+
+	rc = ABT_eventual_create(0, &args.boa_eventual);
+	if (rc != ABT_SUCCESS)
+		return dss_abterr2der(rc);
+
+	spdk_bs_set_super(bs, blobid, bs_set_super_cb, &args);
+	ABT_eventual_free(&args.boa_eventual);
+
+	return args.boa_rc;
+}
+
+static int
+bio_sb_create_if_not_exist(struct bio_blobstore *bbs, spdk_blob_id *super_blob_id)
+{
+	int rc;
+	spdk_blob_id blob_id = 0;
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+
+	rc = bs_get_super(bbs->bb_bs, &blob_id);
+	if (rc == -DER_NONEXIST) {
+		D_PRINT("[RYON] %s:%d [%s()] > Creating\n", __FILE__, __LINE__, __FUNCTION__);
+		uint64_t cluster_sz = spdk_bs_get_cluster_size(bbs->bb_bs);
+D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+		rc = create_one_blob(bbs->bb_bs, cluster_sz, &blob_id);
+D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+		if (rc != 0) {
+			D_PRINT("Failed to create super blob. "DF_RC"\n", DP_RC(rc));
+			return rc;
+		}
+		rc = bs_set_super(bbs->bb_bs, blob_id);
+	} else if (rc != 0) {
+		D_PRINT("Failed to get super blob id. "DF_RC"\n", DP_RC(rc));
+	} else {
+		D_PRINT("[RYON] %s:%d [%s()] > Superblob id: %lu\n", __FILE__, __LINE__, __FUNCTION__, blob_id);
+	}
+	*super_blob_id = blob_id;
+	return rc;
+}
+
+static void
+bs_blob_open_cb(void *cb_arg, struct spdk_blob *blb, int bserrno)
+{
+	struct blob_ops_arg *args = cb_arg;
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+
+	if (bserrno != 0) {
+		args->boa_rc = daos_errno2der(-bserrno);
+	} else {
+		args->boa_blob = blb;
+	}
+
+	ABT_eventual_set(args->boa_eventual, NULL, 0);
+}
+
+static int
+bs_blob_open(struct spdk_blob_store *bs, spdk_blob_id id, struct spdk_blob **blob)
+{
+	struct blob_ops_arg	args = {0};
+	int			rc;
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+
+	rc = ABT_eventual_create(0, &args.boa_eventual);
+	if (rc != ABT_SUCCESS)
+		return dss_abterr2der(rc);
+
+	spdk_bs_open_blob(bs, id, bs_blob_open_cb, &args);
+
+	ABT_eventual_wait(args.boa_eventual, NULL);
+	if (args.boa_rc == 0)
+		*blob = args.boa_blob;
+
+	ABT_eventual_free(&args.boa_eventual);
+	return args.boa_rc;
+}
+
+static void
+blob_write_cb(void *cb_arg, int bserrno)
+{
+	struct blob_ops_arg *args = cb_arg;
+
+	ABT_eventual_set(args->boa_eventual, NULL, 0);
+}
+
+static int
+bs_blob_write(struct spdk_blob_store *bs, struct spdk_blob *blob, void *payload)
+{
+	struct blob_ops_arg	 args = {0};
+	struct spdk_io_channel	*channel = NULL;
+	int			 rc;
+
+	channel = spdk_bs_alloc_io_channel(bs);
+	if (channel == NULL)
+		return -DER_NOMEM;
+	rc = ABT_eventual_create(0, &args.boa_eventual);
+	if (rc != ABT_SUCCESS)
+		return dss_abterr2der(rc);
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+
+	spdk_blob_io_write(blob, channel, payload, 0, 1, blob_write_cb, &args);
+
+	ABT_eventual_wait(args.boa_eventual, NULL);
+
+	spdk_bs_free_io_channel(channel);
+	ABT_eventual_free(&args.boa_eventual);
+	return args.boa_rc;
+}
+
+int
+bio_write_super_hdr(struct bio_blobstore *bbs, struct bio_super_hdr *hdr)
+{
+	struct spdk_blob	*blob;
+	spdk_blob_id		 super;
+	int			 rc;
+
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+	rc = bio_sb_create_if_not_exist(bbs, &super);
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+	if (rc != 0) {
+		D_PRINT("Error getting super blob: "DF_RC"\n", DP_RC(rc));
+	}
+D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+	rc = bs_blob_open(bbs->bb_bs, super, &blob);
+	D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+	if (rc != 0) {
+		D_PRINT("Failed to open blob: "DF_RC"\n", DP_RC(rc));
+		return rc;
+	}
+D_PRINT("[RYON] %s:%d [%s()] > \n", __FILE__, __LINE__, __FUNCTION__);
+	rc = bs_blob_write(bbs->bb_bs, blob, hdr);
+	if (rc != 0) {
+		D_PRINT("Write failed: "DF_RC"\n", DP_RC(rc));
+	}
+
+	return rc;
+}
+
 
 static void
 free_pool_list(d_list_t *pool_list)
