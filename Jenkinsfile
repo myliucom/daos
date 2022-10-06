@@ -95,7 +95,9 @@ void fixup_rpmlintrc() {
                     '/usr/bin/daos_admin',
                     '/usr/bin/daos_server']
 
-    String content = readFile(file: 'utils/rpms/daos.rpmlintrc')
+    String content = readFile(file: 'utils/rpms/daos.rpmlintrc') + '\n\n' +
+                     '# https://daosio.atlassian.net/browse/DAOS-11534\n'
+
     go_bins.each { bin ->
         content += 'addFilter("W: position-independent-executable-suggested ' + bin + '")\n'
     }
