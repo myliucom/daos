@@ -82,6 +82,29 @@ Integer getuid() {
     return cached_uid
 }
 
+void fixup_rpmlintrc() {
+    if (env.SCONS_FAULTS_ARGS != 'BUILD_TYPE=dev') {
+        return
+    }
+
+    List go_bins = ['/usr/bin/dmg',
+                    '/usr/bin/daos',
+                    '/usr/bin/daos_agent',
+                    '/usr/bin/hello_drpc',
+                    '/usr/bin/daos_firmware',
+                    '/usr/bin/daos_admin',
+                    '/usr/bin/daos_server']
+
+    String content = readFile(file: 'utils/rpms/daos.rpmlintrc')
+    go_bins.each { bin ->
+        content += 'addFilter("W: position-independent-executable-suggested ' + bin + '")\n'
+    }
+
+    println('New daos.rpmlintrc:\n' + content)
+
+    writeFile(file: 'utils/rpms/daos.rpmlintrc', text: content)
+}
+
 pipeline {
     agent { label 'lightweight' }
 
@@ -442,6 +465,7 @@ pipeline {
                     }
                     post {
                         success {
+                            fixup_rpmlintrc()
                             buildRpmPost condition: 'success', rpmlint: true
                         }
                         unstable {
@@ -478,6 +502,7 @@ pipeline {
                     }
                     post {
                         success {
+                            fixup_rpmlintrc()
                             buildRpmPost condition: 'success', rpmlint: true
                         }
                         unstable {
