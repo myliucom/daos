@@ -36,11 +36,12 @@ ior:
   transfer_size: '4K'
   block_size: '512M'
   dfs_oclass: "SX"
+  sw_deadline: 600
   file_options: !mux
     ssf:
-      flags: "-k -e -D 600 -v -w -W -r -R"
+      flags: "-k -e -v -w -W -r -R"
     fpp:
-      flags: "-F -k -e -D 600 -v -w -W -r -R"
+      flags: "-F -k -e -v -w -W -r -R"
 dfuse:
   mount_dir: "/tmp/daos_dfuse/"
   disable_caching: True
