@@ -80,11 +80,10 @@ class DmvrPosixSubsets(DataMoverTestBase):
 
         copy_list = []
 
-        if self.tool == "FS_COPY":
-            copy_list.append(
-                ["dfuse copy (dfuse cont1 dir to dfuse cont2 dir that doesn't exist)",
-                    ["POSIX", dfuse_cont1_dir, None, None],
-                    ["POSIX", dfuse_cont2_dir, None, None]])
+        copy_list.append(
+            ["dfuse copy (dfuse cont1 dir to dfuse cont2 dir that doesn't exist)",
+                ["POSIX", dfuse_cont1_dir, None, None],
+                ["POSIX", dfuse_cont2_dir, None, None]])
 
         # For each copy, use a new destination directory.
         # This ensures that the source directory is copied
