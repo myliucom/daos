@@ -170,6 +170,7 @@ const (
 	ServerConfigNrHugepagesOutOfRange
 	ServerConfigHugepagesDisabled
 	ServerConfigVMDSettingDuplicate
+	ServerConfigControlMetadataNoPath
 )
 
 // SPDK library bindings codes

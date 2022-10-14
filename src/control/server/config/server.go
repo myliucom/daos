@@ -33,6 +33,13 @@ const (
 	relConfExamplesPath = "../utils/config/examples/"
 )
 
+// ControlMetadata describes configuration options for control plane metadata storage on the
+// DAOS server.
+type ControlMetadata struct {
+	Path       string `yaml:"path"`
+	DevicePath string `yaml:"device"`
+}
+
 // Server describes configuration options for DAOS control plane.
 // See utils/config/daos_server.yml for parameter descriptions.
 type Server struct {
@@ -63,6 +70,8 @@ type Server struct {
 	Modules    string              `yaml:"-"`
 
 	AccessPoints []string `yaml:"access_points"`
+
+	Metadata ControlMetadata `yaml:"control_metadata"`
 
 	// unused (?)
 	FaultCb      string `yaml:"fault_cb"`
@@ -138,6 +147,12 @@ func (cfg *Server) WithCrtTimeout(timeout uint32) *Server {
 	for _, engine := range cfg.Engines {
 		engine.Fabric.Update(cfg.Fabric)
 	}
+	return cfg
+}
+
+// WithControlMetadata sets the control plane metadata.
+func (cfg *Server) WithControlMetadata(md ControlMetadata) *Server {
+	cfg.Metadata = md
 	return cfg
 }
 
@@ -448,6 +463,10 @@ func (cfg *Server) Validate(log logging.Logger, hugePageSize int) (err error) {
 		return FaultConfigBadAccessPoints
 	}
 	cfg.AccessPoints = newAPs
+
+	if cfg.Metadata.DevicePath != "" && cfg.Metadata.Path == "" {
+		return FaultConfigControlMetadataNoPath
+	}
 
 	// A config without engines is valid when initially discovering hardware prior to adding
 	// per-engine sections with device allocations.
