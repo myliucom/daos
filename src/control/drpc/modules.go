@@ -305,6 +305,8 @@ const (
 	MethodPoolFindByLabel srvMethod = C.DRPC_METHOD_SRV_POOL_FIND_BYLABEL
 	// MethodClusterEvent notifies of a cluster event in the I/O Engine.
 	MethodClusterEvent srvMethod = C.DRPC_METHOD_SRV_CLUSTER_EVENT
+	// MethodSystemGetProp requests system properties from management service
+	MethodSystemGetProp srvMethod = C.DRPC_METHOD_SYSTEM_GET_PROPERTIES
 )
 
 type securityMethod int32

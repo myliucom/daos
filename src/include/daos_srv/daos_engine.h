@@ -793,6 +793,9 @@ int ds_get_pool_svc_ranks(uuid_t pool_uuid, d_rank_list_t **svc_ranks);
 int ds_pool_find_bylabel(d_const_string_t label, uuid_t pool_uuid,
 			 d_rank_list_t **svc_ranks);
 
+/* Get system properties from management service */
+int ds_system_get_props();
+
 struct sys_db;
 typedef int (*sys_db_trav_cb_t)(struct sys_db *db, char *table, d_iov_t *key,
 				void *args);

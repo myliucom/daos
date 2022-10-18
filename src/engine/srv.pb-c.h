@@ -21,6 +21,8 @@ typedef struct _Srv__GetPoolSvcReq Srv__GetPoolSvcReq;
 typedef struct _Srv__GetPoolSvcResp Srv__GetPoolSvcResp;
 typedef struct _Srv__PoolFindByLabelReq Srv__PoolFindByLabelReq;
 typedef struct _Srv__PoolFindByLabelResp Srv__PoolFindByLabelResp;
+typedef struct _Srv__GetSystemPropReq Srv__GetSystemPropReq;
+typedef struct _Srv__GetSystemPropResp Srv__GetSystemPropResp;
 
 
 /* --- enums --- */
@@ -164,6 +166,36 @@ struct  _Srv__PoolFindByLabelResp
     , 0, (char *)protobuf_c_empty_string, 0,NULL }
 
 
+struct  _Srv__GetSystemPropReq
+{
+  ProtobufCMessage base;
+  /*
+   * just for testing right now
+   */
+  char *something;
+};
+#define SRV__GET_SYSTEM_PROP_REQ__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&srv__get_system_prop_req__descriptor) \
+    , (char *)protobuf_c_empty_string }
+
+
+struct  _Srv__GetSystemPropResp
+{
+  ProtobufCMessage base;
+  /*
+   * DAOS error code
+   */
+  int32_t status;
+  /*
+   * Just for testing right now
+   */
+  char *returntext;
+};
+#define SRV__GET_SYSTEM_PROP_RESP__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&srv__get_system_prop_resp__descriptor) \
+    , 0, (char *)protobuf_c_empty_string }
+
+
 /* Srv__NotifyReadyReq methods */
 void   srv__notify_ready_req__init
                      (Srv__NotifyReadyReq         *message);
@@ -278,6 +310,44 @@ Srv__PoolFindByLabelResp *
 void   srv__pool_find_by_label_resp__free_unpacked
                      (Srv__PoolFindByLabelResp *message,
                       ProtobufCAllocator *allocator);
+/* Srv__GetSystemPropReq methods */
+void   srv__get_system_prop_req__init
+                     (Srv__GetSystemPropReq         *message);
+size_t srv__get_system_prop_req__get_packed_size
+                     (const Srv__GetSystemPropReq   *message);
+size_t srv__get_system_prop_req__pack
+                     (const Srv__GetSystemPropReq   *message,
+                      uint8_t             *out);
+size_t srv__get_system_prop_req__pack_to_buffer
+                     (const Srv__GetSystemPropReq   *message,
+                      ProtobufCBuffer     *buffer);
+Srv__GetSystemPropReq *
+       srv__get_system_prop_req__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   srv__get_system_prop_req__free_unpacked
+                     (Srv__GetSystemPropReq *message,
+                      ProtobufCAllocator *allocator);
+/* Srv__GetSystemPropResp methods */
+void   srv__get_system_prop_resp__init
+                     (Srv__GetSystemPropResp         *message);
+size_t srv__get_system_prop_resp__get_packed_size
+                     (const Srv__GetSystemPropResp   *message);
+size_t srv__get_system_prop_resp__pack
+                     (const Srv__GetSystemPropResp   *message,
+                      uint8_t             *out);
+size_t srv__get_system_prop_resp__pack_to_buffer
+                     (const Srv__GetSystemPropResp   *message,
+                      ProtobufCBuffer     *buffer);
+Srv__GetSystemPropResp *
+       srv__get_system_prop_resp__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   srv__get_system_prop_resp__free_unpacked
+                     (Srv__GetSystemPropResp *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*Srv__NotifyReadyReq_Closure)
@@ -298,6 +368,12 @@ typedef void (*Srv__PoolFindByLabelReq_Closure)
 typedef void (*Srv__PoolFindByLabelResp_Closure)
                  (const Srv__PoolFindByLabelResp *message,
                   void *closure_data);
+typedef void (*Srv__GetSystemPropReq_Closure)
+                 (const Srv__GetSystemPropReq *message,
+                  void *closure_data);
+typedef void (*Srv__GetSystemPropResp_Closure)
+                 (const Srv__GetSystemPropResp *message,
+                  void *closure_data);
 
 /* --- services --- */
 
@@ -310,6 +386,8 @@ extern const ProtobufCMessageDescriptor srv__get_pool_svc_req__descriptor;
 extern const ProtobufCMessageDescriptor srv__get_pool_svc_resp__descriptor;
 extern const ProtobufCMessageDescriptor srv__pool_find_by_label_req__descriptor;
 extern const ProtobufCMessageDescriptor srv__pool_find_by_label_resp__descriptor;
+extern const ProtobufCMessageDescriptor srv__get_system_prop_req__descriptor;
+extern const ProtobufCMessageDescriptor srv__get_system_prop_resp__descriptor;
 
 PROTOBUF_C__END_DECLS
 

@@ -483,6 +483,7 @@ func (srv *server) start(ctx context.Context, shutdown context.CancelFunc) error
 		engines: srv.harness.Instances(),
 		tc:      srv.cfg.TransportConfig,
 		sysdb:   srv.sysdb,
+		mgmtSvc: srv.mgmtSvc,
 		events:  srv.pubSub,
 	}
 	// Single daos_server dRPC server to handle all engine requests

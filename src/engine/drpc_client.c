@@ -415,6 +415,58 @@ out:
 }
 
 int
+ds_system_get_props()
+{
+	struct drpc_alloc       alloc    = PROTO_ALLOCATOR_INIT(alloc);
+	Srv__GetSystemPropReq   srv_req  = SRV__GET_SYSTEM_PROP_REQ__INIT;
+	Srv__GetSystemPropResp *srv_resp = NULL;
+	Drpc__Response         *dresp;
+	uint8_t                *req;
+	size_t                  req_size;
+	int                     rc;
+
+	req_size = srv__get_system_prop_req__get_packed_size(&srv_req);
+	D_ALLOC(req, req_size);
+	if (req == NULL)
+		D_GOTO(out, rc = -DER_NOMEM);
+	srv__get_system_prop_req__pack(&srv_req, req);
+
+	rc = dss_drpc_call(DRPC_MODULE_SRV, DRPC_METHOD_SYSTEM_GET_PROPERTIES,
+			   req, req_size, 0 /* flags */, &dresp);
+	if (rc != 0)
+		goto out_req;
+	if (dresp->status != DRPC__STATUS__SUCCESS) {
+		D_ERROR("received erroneous dRPC response: %d\n", dresp->status);
+		D_GOTO(out_dresp, rc = -DER_IO);
+	}
+
+	srv_resp = srv__get_system_prop_resp__unpack(&alloc.alloc, dresp->body.len,
+						     dresp->body.data);
+	if (alloc.oom) {
+		D_GOTO(out_dresp, rc = -DER_NOMEM);
+	} else if (srv_resp == NULL) {
+		D_ERROR("failed to unpack resp (get pool svc)\n");
+		D_GOTO(out_dresp, rc = -DER_NOMEM);
+	}
+
+	if (srv_resp->status != 0) {
+		D_ERROR("Error "DF_RC"\n", DP_RC(srv_resp->status));
+		D_GOTO(out_resp, rc = srv_resp->status);
+	}
+	D_PRINT("[RYON] %s:%d [%s()] > srv_resp->returntext: %s\n", __FILE__, __LINE__, __FUNCTION__, srv_resp->returntext);
+
+out_resp:
+	srv__get_system_prop_resp__free_unpacked(srv_resp, &alloc.alloc);
+out_dresp:
+	drpc_response_free(dresp);
+out_req:
+	D_FREE(req);
+out:
+	return rc;
+}
+
+
+int
 drpc_init(void)
 {
 	D_ASSERT(dss_drpc_path == NULL);

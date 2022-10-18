@@ -11,6 +11,7 @@
 #include <gurt/telemetry_producer.h>
 #include <daos/pool.h>
 #include <daos_prop.h>
+#include <daos/mgmt.h>
 #include "srv_internal.h"
 
 #define C_TRACE(...) D_DEBUG(DB_CSUM, __VA_ARGS__)
@@ -296,6 +297,17 @@ is_idle()
 	return !dss_xstream_is_busy();
 }
 
+static void
+try_get_system_prop()
+{
+	int                      rc;
+
+	rc = ds_system_get_props();
+
+	D_PRINT("[RYON] %s:%d [%s()] >pool_find_bylabel() rc: %d\n", __FILE__, __LINE__,
+		__FUNCTION__, rc);
+}
+
 /** Setup scrubbing context and start scrubbing the pool */
 static void
 scrubbing_ult(void *arg)
@@ -324,10 +336,14 @@ scrubbing_ult(void *arg)
 	ctx.sc_dmi =  dss_get_module_info();
 	ctx.sc_drain_pool_tgt_fn = drain_pool_tgt_cb;
 	ctx.sc_is_idle_fn = is_idle;
-
 	sc_add_pool_metrics(&ctx);
 	while (!dss_ult_exiting(child->spc_scrubbing_req)) {
 		uint32_t sleep_time = 5000;
+
+		/* [todo-ryon]: Will need to put this somewhere else, but
+		 *   just an entry point for now to experiment
+		 */
+		try_get_system_prop();
 
 		rc = vos_scrub_pool(&ctx);
 		if (rc == -DER_SHUTDOWN) {
@@ -362,8 +378,7 @@ ds_start_scrubbing_ult(struct ds_pool_child *child)
 		return 0;
 	}
 
-	C_TRACE("Checksum scrubbing ENABLED. "
-		"xs_id: %d, tgt_id: %d, ctx_id: %d, ",
+	C_TRACE("Checksum scrubbing ENABLED. xs_id: %d, tgt_id: %d, ctx_id: %d, ",
 		dmi->dmi_xs_id, dmi->dmi_tgt_id, dmi->dmi_ctx_id);
 
 	/* There will be several levels iteration, such as pool, container, object, and lower,

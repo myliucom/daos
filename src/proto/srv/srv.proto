@@ -52,3 +52,13 @@ message PoolFindByLabelResp {
 	string uuid = 2; // Pool UUID
 	repeated uint32 svcreps = 3; // Pool service replica ranks
 }
+
+message GetSystemPropReq {
+	string something = 1; // just for testing right now
+}
+
+message GetSystemPropResp {
+	int32 status = 1; // DAOS error code
+	string returnText = 2; // Just for testing right now
+
+}

@@ -8,7 +8,7 @@ package server
 
 import (
 	"context"
-
+	mgmtpb "github.com/daos-stack/daos/src/control/common/proto/mgmt"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
@@ -56,16 +56,18 @@ type srvModule struct {
 	sysdb   poolResolver
 	engines []Engine
 	events  *events.PubSub
+	mgmtSvc *mgmtSvc // TODO - Could create interface like poolResolver??
 }
 
 // newSrvModule creates a new srv module references to the system database,
 // resident EngineInstances and event publish subscribe reference.
-func newSrvModule(log logging.Logger, sysdb poolResolver, engines []Engine, events *events.PubSub) *srvModule {
+func newSrvModule(log logging.Logger, sysdb poolResolver, engines []Engine, events *events.PubSub, svc *mgmtSvc) *srvModule {
 	return &srvModule{
 		log:     log,
 		sysdb:   sysdb,
 		engines: engines,
 		events:  events,
+		mgmtSvc: svc,
 	}
 }
 
@@ -82,6 +84,8 @@ func (mod *srvModule) HandleCall(_ context.Context, session *drpc.Session, metho
 		return mod.handlePoolFindByLabel(req)
 	case drpc.MethodClusterEvent:
 		return mod.handleClusterEvent(req)
+	case drpc.MethodSystemGetProp:
+		return mod.handleSystemProperties(req)
 	default:
 		return nil, drpc.UnknownMethodFailure()
 	}
@@ -195,6 +199,34 @@ func (mod *srvModule) handleClusterEvent(reqb []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "handle cluster event %+v", req)
 	}
+
+	return proto.Marshal(resp)
+}
+
+func (mod *srvModule) handleSystemProperties(reqb []byte) ([]byte, error) {
+	mod.log.Error("Bang")
+	req := new(srvpb.GetSystemPropReq)
+	if err := proto.Unmarshal(reqb, req); err != nil {
+		return nil, drpc.UnmarshalingPayloadFailure()
+	}
+	mod.log.Errorf("handling GetSystemProperties: %+v", req)
+
+	mod.log.Errorf("System Property Count: %d", len(mod.mgmtSvc.systemProps))
+	propReq := mgmtpb.SystemGetPropReq{
+		Sys:  "daos_server",
+		Keys: nil,
+	}
+	if resp2, err := mod.mgmtSvc.SystemGetProp(nil, &propReq); err != nil {
+		mod.log.Errorf("Got error: %s", err)
+	} else {
+		mod.log.Errorf("Got response: %s", resp2)
+	}
+
+	resp := new(srvpb.GetSystemPropResp)
+
+	resp.Status = 0
+	resp.ReturnText = "Bang"
+	mod.log.Errorf("GetSystemProperties: %+v", resp)
 
 	return proto.Marshal(resp)
 }

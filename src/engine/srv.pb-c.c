@@ -277,6 +277,96 @@ void   srv__pool_find_by_label_resp__free_unpacked
   assert(message->base.descriptor == &srv__pool_find_by_label_resp__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
+void   srv__get_system_prop_req__init
+                     (Srv__GetSystemPropReq         *message)
+{
+  static const Srv__GetSystemPropReq init_value = SRV__GET_SYSTEM_PROP_REQ__INIT;
+  *message = init_value;
+}
+size_t srv__get_system_prop_req__get_packed_size
+                     (const Srv__GetSystemPropReq *message)
+{
+  assert(message->base.descriptor == &srv__get_system_prop_req__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t srv__get_system_prop_req__pack
+                     (const Srv__GetSystemPropReq *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &srv__get_system_prop_req__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t srv__get_system_prop_req__pack_to_buffer
+                     (const Srv__GetSystemPropReq *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &srv__get_system_prop_req__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Srv__GetSystemPropReq *
+       srv__get_system_prop_req__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Srv__GetSystemPropReq *)
+     protobuf_c_message_unpack (&srv__get_system_prop_req__descriptor,
+                                allocator, len, data);
+}
+void   srv__get_system_prop_req__free_unpacked
+                     (Srv__GetSystemPropReq *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &srv__get_system_prop_req__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   srv__get_system_prop_resp__init
+                     (Srv__GetSystemPropResp         *message)
+{
+  static const Srv__GetSystemPropResp init_value = SRV__GET_SYSTEM_PROP_RESP__INIT;
+  *message = init_value;
+}
+size_t srv__get_system_prop_resp__get_packed_size
+                     (const Srv__GetSystemPropResp *message)
+{
+  assert(message->base.descriptor == &srv__get_system_prop_resp__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t srv__get_system_prop_resp__pack
+                     (const Srv__GetSystemPropResp *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &srv__get_system_prop_resp__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t srv__get_system_prop_resp__pack_to_buffer
+                     (const Srv__GetSystemPropResp *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &srv__get_system_prop_resp__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Srv__GetSystemPropResp *
+       srv__get_system_prop_resp__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Srv__GetSystemPropResp *)
+     protobuf_c_message_unpack (&srv__get_system_prop_resp__descriptor,
+                                allocator, len, data);
+}
+void   srv__get_system_prop_resp__free_unpacked
+                     (Srv__GetSystemPropResp *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &srv__get_system_prop_resp__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
 static const ProtobufCFieldDescriptor srv__notify_ready_req__field_descriptors[6] =
 {
   {
@@ -685,5 +775,94 @@ const ProtobufCMessageDescriptor srv__pool_find_by_label_resp__descriptor =
   srv__pool_find_by_label_resp__field_indices_by_name,
   1,  srv__pool_find_by_label_resp__number_ranges,
   (ProtobufCMessageInit) srv__pool_find_by_label_resp__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor srv__get_system_prop_req__field_descriptors[1] =
+{
+  {
+    "something",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Srv__GetSystemPropReq, something),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned srv__get_system_prop_req__field_indices_by_name[] = {
+  0,   /* field[0] = something */
+};
+static const ProtobufCIntRange srv__get_system_prop_req__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor srv__get_system_prop_req__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "srv.GetSystemPropReq",
+  "GetSystemPropReq",
+  "Srv__GetSystemPropReq",
+  "srv",
+  sizeof(Srv__GetSystemPropReq),
+  1,
+  srv__get_system_prop_req__field_descriptors,
+  srv__get_system_prop_req__field_indices_by_name,
+  1,  srv__get_system_prop_req__number_ranges,
+  (ProtobufCMessageInit) srv__get_system_prop_req__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor srv__get_system_prop_resp__field_descriptors[2] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(Srv__GetSystemPropResp, status),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "returnText",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Srv__GetSystemPropResp, returntext),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned srv__get_system_prop_resp__field_indices_by_name[] = {
+  1,   /* field[1] = returnText */
+  0,   /* field[0] = status */
+};
+static const ProtobufCIntRange srv__get_system_prop_resp__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor srv__get_system_prop_resp__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "srv.GetSystemPropResp",
+  "GetSystemPropResp",
+  "Srv__GetSystemPropResp",
+  "srv",
+  sizeof(Srv__GetSystemPropResp),
+  2,
+  srv__get_system_prop_resp__field_descriptors,
+  srv__get_system_prop_resp__field_indices_by_name,
+  1,  srv__get_system_prop_resp__number_ranges,
+  (ProtobufCMessageInit) srv__get_system_prop_resp__init,
   NULL,NULL,NULL    /* reserved[123] */
 };

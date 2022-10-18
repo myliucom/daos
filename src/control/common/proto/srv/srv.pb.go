@@ -422,6 +422,108 @@ func (x *PoolFindByLabelResp) GetSvcreps() []uint32 {
 	return nil
 }
 
+type GetSystemPropReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Something string `protobuf:"bytes,1,opt,name=something,proto3" json:"something,omitempty"` // just for testing right now
+}
+
+func (x *GetSystemPropReq) Reset() {
+	*x = GetSystemPropReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_srv_srv_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetSystemPropReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSystemPropReq) ProtoMessage() {}
+
+func (x *GetSystemPropReq) ProtoReflect() protoreflect.Message {
+	mi := &file_srv_srv_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSystemPropReq.ProtoReflect.Descriptor instead.
+func (*GetSystemPropReq) Descriptor() ([]byte, []int) {
+	return file_srv_srv_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetSystemPropReq) GetSomething() string {
+	if x != nil {
+		return x.Something
+	}
+	return ""
+}
+
+type GetSystemPropResp struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Status     int32  `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`        // DAOS error code
+	ReturnText string `protobuf:"bytes,2,opt,name=returnText,proto3" json:"returnText,omitempty"` // Just for testing right now
+}
+
+func (x *GetSystemPropResp) Reset() {
+	*x = GetSystemPropResp{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_srv_srv_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetSystemPropResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSystemPropResp) ProtoMessage() {}
+
+func (x *GetSystemPropResp) ProtoReflect() protoreflect.Message {
+	mi := &file_srv_srv_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSystemPropResp.ProtoReflect.Descriptor instead.
+func (*GetSystemPropResp) Descriptor() ([]byte, []int) {
+	return file_srv_srv_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetSystemPropResp) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
+func (x *GetSystemPropResp) GetReturnText() string {
+	if x != nil {
+		return x.ReturnText
+	}
+	return ""
+}
+
 var File_srv_srv_proto protoreflect.FileDescriptor
 
 var file_srv_srv_proto_rawDesc = []byte{
@@ -466,12 +568,20 @@ var file_srv_srv_proto_rawDesc = []byte{
 	0x74, 0x75, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75,
 	0x73, 0x12, 0x12, 0x0a, 0x04, 0x75, 0x75, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
 	0x04, 0x75, 0x75, 0x69, 0x64, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x76, 0x63, 0x72, 0x65, 0x70, 0x73,
-	0x18, 0x03, 0x20, 0x03, 0x28, 0x0d, 0x52, 0x07, 0x73, 0x76, 0x63, 0x72, 0x65, 0x70, 0x73, 0x42,
-	0x39, 0x5a, 0x37, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x64, 0x61,
-	0x6f, 0x73, 0x2d, 0x73, 0x74, 0x61, 0x63, 0x6b, 0x2f, 0x64, 0x61, 0x6f, 0x73, 0x2f, 0x73, 0x72,
-	0x63, 0x2f, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x2f, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e,
-	0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x73, 0x72, 0x76, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x18, 0x03, 0x20, 0x03, 0x28, 0x0d, 0x52, 0x07, 0x73, 0x76, 0x63, 0x72, 0x65, 0x70, 0x73, 0x22,
+	0x30, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x53, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x50, 0x72, 0x6f, 0x70,
+	0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x09, 0x73, 0x6f, 0x6d, 0x65, 0x74, 0x68, 0x69, 0x6e, 0x67,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x73, 0x6f, 0x6d, 0x65, 0x74, 0x68, 0x69, 0x6e,
+	0x67, 0x22, 0x4b, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x53, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x50, 0x72,
+	0x6f, 0x70, 0x52, 0x65, 0x73, 0x70, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x1e,
+	0x0a, 0x0a, 0x72, 0x65, 0x74, 0x75, 0x72, 0x6e, 0x54, 0x65, 0x78, 0x74, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x0a, 0x72, 0x65, 0x74, 0x75, 0x72, 0x6e, 0x54, 0x65, 0x78, 0x74, 0x42, 0x39,
+	0x5a, 0x37, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x64, 0x61, 0x6f,
+	0x73, 0x2d, 0x73, 0x74, 0x61, 0x63, 0x6b, 0x2f, 0x64, 0x61, 0x6f, 0x73, 0x2f, 0x73, 0x72, 0x63,
+	0x2f, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x2f, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x2f,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x73, 0x72, 0x76, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x33,
 }
 
 var (
@@ -486,7 +596,7 @@ func file_srv_srv_proto_rawDescGZIP() []byte {
 	return file_srv_srv_proto_rawDescData
 }
 
-var file_srv_srv_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_srv_srv_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_srv_srv_proto_goTypes = []interface{}{
 	(*NotifyReadyReq)(nil),      // 0: srv.NotifyReadyReq
 	(*BioErrorReq)(nil),         // 1: srv.BioErrorReq
@@ -494,6 +604,8 @@ var file_srv_srv_proto_goTypes = []interface{}{
 	(*GetPoolSvcResp)(nil),      // 3: srv.GetPoolSvcResp
 	(*PoolFindByLabelReq)(nil),  // 4: srv.PoolFindByLabelReq
 	(*PoolFindByLabelResp)(nil), // 5: srv.PoolFindByLabelResp
+	(*GetSystemPropReq)(nil),    // 6: srv.GetSystemPropReq
+	(*GetSystemPropResp)(nil),   // 7: srv.GetSystemPropResp
 }
 var file_srv_srv_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -581,6 +693,30 @@ func file_srv_srv_proto_init() {
 				return nil
 			}
 		}
+		file_srv_srv_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetSystemPropReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_srv_srv_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetSystemPropResp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -588,7 +724,7 @@ func file_srv_srv_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_srv_srv_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
