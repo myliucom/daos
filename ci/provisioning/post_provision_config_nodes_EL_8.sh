@@ -132,7 +132,7 @@ distro_custom() {
     rm -f "$mlnx_ver.tgz"
     
     # Add a repo to install RPMS
-    dnf config-manager --add-repo="$mlnx_ver/RPMS/UPSTREAM_LIBS/"
+    dnf config-manager --add-repo="$mlnx_ver/RPMS/"
     rpm --import "$mlnx_ver"/RPM-GPG-KEY-Mellanox
     dnf repolist || true
 
