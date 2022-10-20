@@ -119,39 +119,28 @@ install_mofed() {
     #  MLNX_VER_NUM="5.6-2.0.9.0"
     #fi
     # Try $gversion and one minor version lower
-    for mlnx_gversion in $gversion $(echo "scale=1; $gversion-.1" | bc); do
-        mlnx_ver="MLNX_OFED_LINUX-$MLNX_VER_NUM-rhel$mlnx_gversion-x86_64"
-        if wget -nv https://artifactory.dc.hpdd.intel.com/artifactory/raw-internal/mlnx_ofed/"$mlnx_ver".tgz; then
-            break
-        fi
-    done
-    
-    if [ ! -f "$mlnx_ver".tgz ]; then
-        echo "Failed to fetch a Mellanox tarball" >&2
-        exit 1
-    fi
-    
-    tar -xf "$mlnx_ver.tgz"
-    rm -f "$mlnx_ver.tgz"
-    
+    #for mlnx_gversion in $gversion $(echo "scale=1; $gversion-.1" | bc); do
+    #    mlnx_ver="MLNX_OFED_LINUX-$MLNX_VER_NUM-rhel$mlnx_gversion-x86_64"
+    #    if wget -nv https://artifactory.dc.hpdd.intel.com/artifactory/raw-internal/mlnx_ofed/"$mlnx_ver".tgz; then
+    #        break
+    #    fi
+    #done
+
     # Add a repo to install RPMS
-    dnf config-manager --add-repo="$mlnx_ver/RPMS/"
-    rpm --import "$mlnx_ver"/RPM-GPG-KEY-Mellanox
+    dnf config-manager --add-repo=https://artifactory.dc.hpdd.intel.com/artifactory/mlnx_ofed/"$MLNX_VER_NUM-rhel$gversion-x86_64/"
+    # TODO: replace this with a local key download
+    curl -O http://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox
+    rpm --import RPM-GPG-KEY-Mellanox
+    rm -f RPM-GPG-KEY-Mellanox
     dnf repolist || true
 
-    dnf -y install mlnx-ofed-all
+    dnf -y install mlnx-ofed-basic
 
     # now, upgrade firmware
     dnf -y install mlnx-fw-updater
 
-    grep ibacm /tmp/MLNX_OFED_LINUX.*/general.log || true
-    
-    tail -n +1 /tmp/MLNX_OFED_LINUX.*/general.log || true
-    
     # Make sure that tools are present. 
     ls /usr/bin/ib_* /usr/bin/ibv_*
-    
-    rm -rf "$mlnx_ver" ~/rpmbuild
     
     dnf list --showduplicates perftest
     if [ "$gversion" == "8.5" ]; then
