@@ -949,10 +949,6 @@ pipeline {
             }
         } // stage('Test Storage Prep')
         stage('Test Hardware') {
-            when {
-                beforeAgent true
-                expression { !skipStage() }
-            }
             parallel {
                 stage('Functional Hardware Small') {
                     when {
