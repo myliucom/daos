@@ -789,7 +789,7 @@ pipeline {
                         expression { !skipStage() }
                     }
                     agent {
-                        label params.CI_FUNCTIONAL_VM9_LABEL
+                        label "wolf-230_nvme9"
                     }
                     steps {
                         functionalTest inst_repos: daosRepos(),
