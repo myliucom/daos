@@ -18,7 +18,10 @@ distro_custom() {
     # for Launchable's pip install
     dnf -y install python3-setuptools.noarch
 
-    # Remove OPA and install MOFED
+}
+
+install_mofed() {
+
     MLNX_VER_NUM=5.6-2.0.9.0
     if [ -z "$MLNX_VER_NUM" ]; then
         echo "MLNX_VER_NUM is not set"

@@ -256,6 +256,11 @@ post_provision_config_nodes() {
                      slurm-example-configs slurmctld slurm-slurmmd
     fi
 
+    if lspci | grep "ConnectX-6"; then
+        # Remove OPA and install MOFED
+        install_mofed
+    fi
+
     if [ -n "$INST_REPOS" ]; then
         local repo
         for repo in $INST_REPOS; do
