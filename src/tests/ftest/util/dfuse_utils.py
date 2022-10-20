@@ -16,9 +16,9 @@ from general_utils import check_file_exists, pcmd
 class DfuseCommand(ExecutableCommand):
     """Defines a object representing a dfuse command."""
 
-    def __init__(self, namespace, command):
+    def __init__(self, namespace, command, path=""):
         """Create a dfuse Command object."""
-        super().__init__(namespace, command)
+        super().__init__(namespace, command, path)
 
         # dfuse options
         self.puuid = FormattedParameter("--pool {}")
@@ -80,15 +80,16 @@ class DfuseCommand(ExecutableCommand):
 class Dfuse(DfuseCommand):
     """Class defining an object of type DfuseCommand."""
 
-    def __init__(self, hosts, tmp, namespace="/run/dfuse/*"):
+    def __init__(self, hosts, tmp, namespace="/run/dfuse/*", path=""):
         """Create a dfuse object.
 
         Args:
             hosts (NodeSet): hosts on which to run dfuse
             tmp (str): tmp directory path
             namespace (str): dfuse namespace. Defaults to /run/dfuse/*
+            path (str, optional): path to location of command binary file. Defaults to "".
         """
-        super().__init__(namespace, "dfuse")
+        super().__init__(namespace, "dfuse", path)
 
         # set params
         self.hosts = hosts.copy()
@@ -123,13 +124,13 @@ class Dfuse(DfuseCommand):
 
         # Detect which hosts have mount point directories defined
         command = "test -d {0} -a ! -L {0}".format(self.mount_dir.value)
-        retcodes = pcmd(nodes, command, expect_rc=None)
+        retcodes = pcmd(nodes, command, expect_rc=None, run_as_user=self.run_as_user)
         for retcode, hosts in list(retcodes.items()):
             if retcode == 0:
                 check_mounted.add(hosts)
             else:
                 command = "grep 'dfuse {}' /proc/mounts" .format(self.mount_dir.value)
-                retcodes = pcmd(hosts, command, expect_rc=None)
+                retcodes = pcmd(hosts, command, expect_rc=None, run_as_user=self.run_as_user)
                 for ret_code, host_names in list(retcodes.items()):
                     if ret_code == 0:
                         check_mounted.add(host_names)
@@ -139,7 +140,7 @@ class Dfuse(DfuseCommand):
         if check_mounted:
             # Detect which hosts with mount point directories have it mounted as a fuseblk device
             command = "stat -c %T -f {0} | grep -v fuseblk".format(self.mount_dir.value)
-            retcodes = pcmd(check_mounted, command, expect_rc=None)
+            retcodes = pcmd(check_mounted, command, expect_rc=None, run_as_user=self.run_as_user)
             for retcode, hosts in list(retcodes.items()):
                 if retcode == 1:
                     state["mounted"].add(hosts)
@@ -160,13 +161,15 @@ class Dfuse(DfuseCommand):
 
         """
         umount = "-uz" if force else "-u"
-        command = [
-            "if [ -x '$(command -v fusermount)' ]",
-            "then fusermount {0} {1}".format(umount, self.mount_dir.value),
-            "else fusermount3 {0} {1}".format(umount, self.mount_dir.value),
-            "fi"
-        ]
-        return ";".join(command)
+        return "fusermount {0} {1}".format(umount, self.mount_dir.value)
+        # TODO proper
+        # command = [
+        #     "if [ -x '$(command -v fusermount)' ]",
+        #     "then fusermount {0} {1}".format(umount, self.mount_dir.value),
+        #     "else fusermount3 {0} {1}".format(umount, self.mount_dir.value),
+        #     "fi"
+        # ]
+        # return ";".join(command)
 
     def create_mount_point(self):
         """Create dfuse directory.
@@ -177,14 +180,13 @@ class Dfuse(DfuseCommand):
         """
         # Raise exception if mount point not specified
         if self.mount_dir.value is None:
-            raise CommandFailure("Mount point not specified, "
-                                 "check test yaml file")
+            raise CommandFailure("Mount point not specified. Check test yaml file")
 
         # Create the mount point on any host without dfuse already mounted
         state = self.check_mount_state()
         if state["nodirectory"]:
             command = "mkdir -p {}".format(self.mount_dir.value)
-            ret_code = pcmd(state["nodirectory"], command, timeout=30)
+            ret_code = pcmd(state["nodirectory"], command, timeout=30, run_as_user=self.run_as_user)
             if len(ret_code) > 1 or 0 not in ret_code:
                 failed_nodes = [
                     str(node_set) for code, node_set in list(ret_code.items())
@@ -223,7 +225,7 @@ class Dfuse(DfuseCommand):
                 self.mount_dir.value, target_nodes)
 
             cmd = "rmdir {}".format(self.mount_dir.value)
-            ret_code = pcmd(target_nodes, cmd, timeout=30)
+            ret_code = pcmd(target_nodes, cmd, timeout=30, run_as_user=self.run_as_user)
             if len(ret_code) == 1 and 0 in ret_code:
                 return
 
@@ -232,7 +234,7 @@ class Dfuse(DfuseCommand):
                  if code != 0]))
 
             cmd = "rm -rf {}".format(self.mount_dir.value)
-            ret_code = pcmd(failed_nodes, cmd, timeout=30)
+            ret_code = pcmd(failed_nodes, cmd, timeout=30, run_as_user=self.run_as_user)
             if len(ret_code) > 1 or 0 not in ret_code:
                 error_hosts = NodeSet(
                     ",".join(
@@ -258,8 +260,7 @@ class Dfuse(DfuseCommand):
         """Run the dfuse command.
 
         Args:
-            check (bool): Check if dfuse mounted properly after
-                mount is executed.
+            check (bool): Check if dfuse mounted properly after mount is executed.
             bind_cores (str): List of CPU cores to pass to taskset
         Raises:
             CommandFailure: In case dfuse run command fails
@@ -269,8 +270,7 @@ class Dfuse(DfuseCommand):
 
         # A log file must be defined to ensure logs are captured
         if "D_LOG_FILE" not in self.env:
-            raise CommandFailure(
-                "Dfuse missing environment variables for D_LOG_FILE")
+            raise CommandFailure("Dfuse missing environment variables for D_LOG_FILE")
 
         if 'D_LOG_MASK' not in self.env:
             self.env['D_LOG_MASK'] = 'INFO'
@@ -282,12 +282,12 @@ class Dfuse(DfuseCommand):
         self.create_mount_point()
 
         # run dfuse command
-        cmd = self.env.to_export_str()
-        if bind_cores:
-            cmd += 'taskset -c {} '.format(bind_cores)
-        cmd += str(self)
-        self.log.info("Command is '%s'", cmd)
-        ret_code = pcmd(self.hosts, cmd, timeout=30)
+        command = ' '.join(filter(None, [
+            self.env.to_export_str(),
+            f'taskset -c {bind_cores}' if bind_cores else None,
+            str(self)
+        ]))
+        ret_code = pcmd(self.hosts, command, timeout=30, run_as_user=self.run_as_user)
 
         if 0 in ret_code:
             self.running_hosts.add(ret_code[0])
@@ -298,9 +298,7 @@ class Dfuse(DfuseCommand):
                 ",".join(
                     [str(node_set) for code, node_set in list(ret_code.items())
                      if code != 0]))
-            raise CommandFailure(
-                "Error starting dfuse on the following hosts: {}".format(
-                    error_hosts))
+            raise CommandFailure(f"Error starting dfuse on the following hosts: {error_hosts}")
 
         if check:
             # Dfuse will block in the command for the mount to complete, even
@@ -375,13 +373,14 @@ class Dfuse(DfuseCommand):
                 # Attempt to kill dfuse on after first unmount fails
                 if self.running_hosts and counter > 1:
                     kill_command = "pkill dfuse --signal KILL"
-                    pcmd(self.running_hosts, kill_command, timeout=30)
+                    pcmd(self.running_hosts, kill_command, timeout=3, run_as_user=self.run_as_user)
 
                 # Attempt to unmount any fuseblk mounted devices after detection
                 if self.running_hosts and counter > 0:
+                    # TODO check pcmd failure
                     pcmd(
                         self.running_hosts,
-                        self.get_umount_command(counter > 1), expect_rc=None)
+                        self.get_umount_command(counter > 1), expect_rc=None, run_as_user=self.run_as_user)
                     time.sleep(2)
 
                 # Detect which hosts have fuseblk mounted devices and remove any
@@ -427,9 +426,9 @@ def get_dfuse(test, hosts, namespace=None):
 
     """
     if namespace:
-        dfuse = Dfuse(hosts, test.tmp, namespace)
+        dfuse = Dfuse(hosts, test.tmp, namespace, path=test.bin)
     else:
-        dfuse = Dfuse(hosts, test.tmp)
+        dfuse = Dfuse(hosts, test.tmp, path=test.bin)
     dfuse.get_params(test)
     return dfuse
 

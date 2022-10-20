@@ -59,6 +59,7 @@ class ExecutableCommand(CommandWithParameters):
         self.verbose = True
         self.env = EnvironmentVariables()
         self.sudo = False
+        self.run_as_user = None
 
         # A list of environment variable names to set and export prior to
         # running the command.  Values can be set via the get_environment()
@@ -98,7 +99,10 @@ class ExecutableCommand(CommandWithParameters):
 
         """
         value = super().__str__()
-        if self.sudo:
+        if self.run_as_user:
+            # TODO need to export env, THEN runuser. Same with sudo?????? :(
+            value = f'sudo -n runuser -u {self.run_as_user} -- {value}'
+        elif self.sudo:
             value = " ".join(["sudo -n", value])
         return value
 

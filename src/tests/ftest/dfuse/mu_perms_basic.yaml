@@ -1,0 +1,34 @@
+hosts:
+  test_servers: 1
+  test_clients: 1
+  timeout: 240
+server_config:
+  name: daos_server
+  engines_per_host: 1
+  engines:
+    0:
+      targets: 4
+      nr_xs_helpers: 0
+      storage:
+        0:
+          class: ram
+          scm_mount: /mnt/daos
+          scm_size: 4
+pool:
+  control_method: dmg
+  size: 1G
+container:
+  control_method: daos
+  type: POSIX
+dfuse:
+  mount_dir: "/tmp/daos_dfuse/"
+  disable_caching: true
+  multi_user: true
+client_users:
+ - daos_test_user_x1:daos_test_group_x1
+ - daos_test_user_x2:daos_test_group_x2
+ - daos_test_user_y1:daos_test_group_y1
+dfuse_mu:
+  dfuse_user: daos_test_user_x1
+  group_user: daos_test_user_x2
+  other_user: daos_test_user_y1

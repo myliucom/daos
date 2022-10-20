@@ -580,7 +580,7 @@ def get_host_data(hosts, command, text, error, timeout=None):
     return host_data
 
 
-def pcmd(hosts, command, verbose=True, timeout=None, expect_rc=0):
+def pcmd(hosts, command, verbose=True, timeout=None, expect_rc=0, run_as_user=None):
     """Run a command on each host in parallel and get the return codes.
 
     Args:
@@ -595,6 +595,8 @@ def pcmd(hosts, command, verbose=True, timeout=None, expect_rc=0):
             values indicating which hosts yielded the return code.
 
     """
+    if run_as_user:
+        command = f'sudo -n runuser -u {run_as_user} -- {command}'
     # Run the command on each host in parallel
     results = run_pcmd(hosts, command, verbose, timeout, expect_rc)
     exit_status = {}

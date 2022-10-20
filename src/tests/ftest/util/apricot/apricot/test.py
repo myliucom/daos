@@ -1762,7 +1762,7 @@ class TestWithServers(TestWithoutServers):
             self.pool.append(self.get_pool(namespace, create, connect, index))
 
     @fail_on(AttributeError)
-    def get_container(self, pool, namespace=None, create=True, **kwargs):
+    def get_container(self, pool, namespace=None, create=True, daos_command=None, **kwargs):
         """Create a TestContainer object.
 
         Args:
@@ -1781,7 +1781,7 @@ class TestWithServers(TestWithoutServers):
 
         """
         # Create a container with params from the config
-        container = TestContainer(pool, daos_command=self.get_daos_command())
+        container = TestContainer(pool, daos_command=(daos_command or self.get_daos_command()))
         if namespace is not None:
             container.namespace = namespace
         container.get_params(self)
