@@ -127,9 +127,10 @@ install_mofed() {
     #done
 
     # Add a repo to install RPMS
-    dnf config-manager --add-repo=https://artifactory.dc.hpdd.intel.com/artifactory/mlnx_ofed/"$MLNX_VER_NUM-rhel$gversion-x86_64/"
-    # TODO: replace this with a local key download
-    curl -O http://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox
+    repo_url=https://artifactory.dc.hpdd.intel.com/artifactory/mlnx_ofed/"$MLNX_VER_NUM-rhel$gversion"-x86_64/
+    dnf -y config-manager --add-repo="$repo_url"
+    curl -L -O "$repo_url"RPM-GPG-KEY-Mellanox
+    dnf -y config-manager --save --setopt="$(url_to_reoo "$repo_url")".gpgcheck=1
     rpm --import RPM-GPG-KEY-Mellanox
     rm -f RPM-GPG-KEY-Mellanox
     dnf repolist || true
