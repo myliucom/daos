@@ -999,7 +999,7 @@ pipeline {
                     }
                     agent {
                         // 8+ node cluster with 1 IB/node + 1 test control node
-                        label "wolf-230_nvme9"
+                        label params.CI_NVME_9_LABEL
                     }
                     steps {
                         functionalTest inst_repos: daosRepos(),
