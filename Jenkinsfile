@@ -44,7 +44,7 @@ void job_status_update(String name=env.STAGE_NAME,
     String key = name.replace(' ', '_')
     key = key.replaceAll('[ .]', '_')
     job_status_internal[key] = value
-                       }
+}
 
 // groovylint-disable-next-line MethodParameterTypeRequired, NoDef
 void job_step_update(def value) {
@@ -260,7 +260,7 @@ pipeline {
                             pragmas[key.toLowerCase()] = value
                         /* groovylint-disable-next-line CatchArrayIndexOutOfBoundsException */
                         } catch (ArrayIndexOutOfBoundsException ignored) {
-                        // ignore and move on to the next line
+                            // ignore and move on to the next line
                         }
                     }
                     env.pragmas = pragmas
@@ -280,7 +280,7 @@ pipeline {
                                         'Please see utils/githooks/README.md.'
                                    exit 1
                                 fi'''
-                                            }
+                        }
                     }
                     post {
                         unsuccessful {

@@ -98,22 +98,7 @@ echo "\"\"\"" >> "$cfg_file"
 if [ -n "$DISTRO_VERSION" ]; then
     releasever_opt=("--config-opts=releasever=$DISTRO_VERSION")
 fi
-# https://github.com/rpm-software-management/mock/issues/915
-continue=true
-while $continue; do
-    # shellcheck disable=SC2086
-    eval mock --configdir "$mock_config_dir" -r "${CHROOT_NAME}"           \
-         ${repo_dels[*]} ${repo_adds[*]} --disablerepo=\*-debug*           \
-         "${releasever_opt[@]}" $MOCK_OPTIONS $RPM_BUILD_OPTIONS "$TARGET" &
-    mock_pid=$!
-    sleep 5
-    date; ls -l /var/lib/mock/opensuse-leap-15.4-x86_64/result/root.log
-    while read -r line; do
-        if [[ $line = *warning:\ waiting\ for\ shared\ lock* ]]; then
-            ps -p $mock_pid fwwww
-            ps tpts/27 fwwwww
-            kill $mock_pid
-            wait $mock_pid
-        fi
-    done < /var/lib/mock/opensuse-leap-15.4-x86_64/result/root.log
-done
+# shellcheck disable=SC2086
+eval mock --configdir "$mock_config_dir" -r "${CHROOT_NAME}"           \
+     ${repo_dels[*]} ${repo_adds[*]} --disablerepo=\*-debug*           \
+     "${releasever_opt[@]}" $MOCK_OPTIONS $RPM_BUILD_OPTIONS "$TARGET"
