@@ -43,6 +43,13 @@ const (
 	accelOptCRCName  = "crc"
 )
 
+// ControlMetadata describes configuration options for control plane metadata storage on the
+// DAOS server.
+type ControlMetadata struct {
+	Path       string `yaml:"path"`
+	DevicePath string `yaml:"device"`
+}
+
 // Class indicates a specific type of storage.
 type Class string
 
@@ -740,12 +747,13 @@ func (ap *AccelProps) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 type Config struct {
-	Tiers            TierConfigs `yaml:"storage" cmdLongFlag:"--storage_tiers,nonzero" cmdShortFlag:"-T,nonzero"`
-	ConfigOutputPath string      `yaml:"-" cmdLongFlag:"--nvme" cmdShortFlag:"-n"`
-	VosEnv           string      `yaml:"-" cmdEnv:"VOS_BDEV_CLASS"`
-	EnableHotplug    bool        `yaml:"-"`
-	NumaNodeIndex    uint        `yaml:"-"`
-	AccelProps       AccelProps  `yaml:"acceleration,omitempty"`
+	ControlMetadata  ControlMetadata `yaml:"-"` // inherited from server
+	Tiers            TierConfigs     `yaml:"storage" cmdLongFlag:"--storage_tiers,nonzero" cmdShortFlag:"-T,nonzero"`
+	ConfigOutputPath string          `yaml:"-" cmdLongFlag:"--nvme" cmdShortFlag:"-n"`
+	VosEnv           string          `yaml:"-" cmdEnv:"VOS_BDEV_CLASS"`
+	EnableHotplug    bool            `yaml:"-"`
+	NumaNodeIndex    uint            `yaml:"-"`
+	AccelProps       AccelProps      `yaml:"acceleration,omitempty"`
 }
 
 func (c *Config) SetNUMAAffinity(node uint) {

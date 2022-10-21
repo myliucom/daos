@@ -195,6 +195,35 @@ func (p *Provider) ScmNeedsFormat() (bool, error) {
 	return needsFormat, nil
 }
 
+// FormatControlMetadata formats the storage used for control metadata, if it is a separate device.
+// If the storage location is on an existing partition, the format of the existing filesystem is
+// checked.
+func (p *Provider) FormatControlMetadata() error {
+	if p.engineStorage.ControlMetadata.Path == "" {
+		// Nothing to do
+		return nil
+	}
+
+	// TODO KJ: Security checks - Ensure the mount point isn't root or any system directory.
+	// How do we deal with "formatting" an existing directory if no device is provided?
+	// e.g. something that might have content unrelated to DAOS that we would not want to delete.
+	// Should we maintain a list of files OK to delete from this directory?
+
+	// TODO KJ: Do we need to use the privileged helper for this?
+	if err := os.MkdirAll(p.engineStorage.ControlMetadata.Path, 0755); err != nil && !os.IsExist(err) {
+		return errors.Wrap(err, "creating control metadata directory")
+	}
+
+	if p.engineStorage.ControlMetadata.DevicePath == "" {
+		// Check existing filesystem is ext4 (i.e. not NFS or any other shared FS)
+		return nil
+	}
+
+	// TODO KJ: mkfs ext4 on device
+
+	return nil
+}
+
 // FormatScm formats SCM based on provider config and force flag.
 func (p *Provider) FormatScm(force bool) error {
 	cfg, err := p.GetScmConfig()

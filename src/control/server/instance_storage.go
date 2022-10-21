@@ -25,6 +25,14 @@ func (ei *EngineInstance) GetStorage() *storage.Provider {
 	return ei.storage
 }
 
+func (ei *EngineInstance) MountMetadata() error {
+	// TODO KJ
+	// if no device, return nil
+	// otherwise attempt to mount device
+	// if device filesystem is not ext4, return err
+	return nil
+}
+
 // MountScm mounts the configured SCM device (DCPM or ramdisk emulation)
 // at the mountpoint specified in the configuration. If the device is already
 // mounted, the function returns nil, indicating success.

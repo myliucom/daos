@@ -24,6 +24,7 @@ import (
 	"github.com/daos-stack/daos/src/control/logging"
 	"github.com/daos-stack/daos/src/control/security"
 	"github.com/daos-stack/daos/src/control/server/engine"
+	"github.com/daos-stack/daos/src/control/server/storage"
 )
 
 const (
@@ -32,13 +33,6 @@ const (
 	configOut           = ".daos_server.active.yml"
 	relConfExamplesPath = "../utils/config/examples/"
 )
-
-// ControlMetadata describes configuration options for control plane metadata storage on the
-// DAOS server.
-type ControlMetadata struct {
-	Path       string `yaml:"path"`
-	DevicePath string `yaml:"device"`
-}
 
 // Server describes configuration options for DAOS control plane.
 // See utils/config/daos_server.yml for parameter descriptions.
@@ -71,7 +65,7 @@ type Server struct {
 
 	AccessPoints []string `yaml:"access_points"`
 
-	Metadata ControlMetadata `yaml:"control_metadata"`
+	Metadata storage.ControlMetadata `yaml:"control_metadata"`
 
 	// unused (?)
 	FaultCb      string `yaml:"fault_cb"`
@@ -151,7 +145,7 @@ func (cfg *Server) WithCrtTimeout(timeout uint32) *Server {
 }
 
 // WithControlMetadata sets the control plane metadata.
-func (cfg *Server) WithControlMetadata(md ControlMetadata) *Server {
+func (cfg *Server) WithControlMetadata(md storage.ControlMetadata) *Server {
 	cfg.Metadata = md
 	return cfg
 }
@@ -499,6 +493,7 @@ func (cfg *Server) Validate(log logging.Logger, hugePageSize int) (err error) {
 	cfgHasBdevs := false
 	cfgTargetCount := 0
 	for idx, ec := range cfg.Engines {
+		ec.Storage.ControlMetadata = cfg.Metadata
 		cfgTargetCount += ec.TargetCount
 
 		ec.ConvertLegacyStorage(log, idx)

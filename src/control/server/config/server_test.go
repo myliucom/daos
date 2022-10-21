@@ -231,7 +231,7 @@ func TestServerConfig_Constructed(t *testing.T) {
 		WithCrtCtxShareAddr(0).
 		WithCrtTimeout(30).
 		WithAccessPoints("hostname1").
-		WithControlMetadata(ControlMetadata{
+		WithControlMetadata(storage.ControlMetadata{
 			Path:       "/home/daos_server/control_meta",
 			DevicePath: "/dev/sdb1",
 		}).
@@ -332,7 +332,9 @@ func TestServerConfig_Validation(t *testing.T) {
 			WithFabricInterfacePort(1234).
 			WithFabricInterface("eth0").
 			WithTargetCount(8).
-			WithPinnedNumaNode(0)
+			WithPinnedNumaNode(0).
+			WithStorageControlMetadataPath(baseCfg().Metadata.Path).
+			WithStorageControlMetadataDevice(baseCfg().Metadata.DevicePath)
 	}
 	noopExtra := func(c *Server) *Server { return c }
 
@@ -706,7 +708,7 @@ func TestServerConfig_Validation(t *testing.T) {
 		},
 		"no control metadata location": {
 			extraConfig: func(c *Server) *Server {
-				return c.WithControlMetadata(ControlMetadata{}).
+				return c.WithControlMetadata(storage.ControlMetadata{}).
 					WithEngines(defaultEngineCfg().
 						WithStorage(
 							storage.NewTierConfig().
@@ -717,18 +719,20 @@ func TestServerConfig_Validation(t *testing.T) {
 			},
 			expConfig: baseCfg().
 				WithAccessPoints("hostname1:10001").
-				WithControlMetadata(ControlMetadata{}).
+				WithControlMetadata(storage.ControlMetadata{}).
 				WithEngines(defaultEngineCfg().
 					WithStorage(
 						storage.NewTierConfig().
 							WithStorageClass("ram").
 							WithScmRamdiskSize(1).
 							WithScmMountPoint("/foo"),
-					)),
+					).
+					WithStorageControlMetadataPath("").
+					WithStorageControlMetadataDevice("")),
 		},
 		"control metadata has device and path": {
 			extraConfig: func(c *Server) *Server {
-				return c.WithControlMetadata(ControlMetadata{
+				return c.WithControlMetadata(storage.ControlMetadata{
 					Path:       filepath.Join(testDir, "control"),
 					DevicePath: "/dev/something",
 				}).
@@ -742,7 +746,7 @@ func TestServerConfig_Validation(t *testing.T) {
 			},
 			expConfig: baseCfg().
 				WithAccessPoints("hostname1:10001").
-				WithControlMetadata(ControlMetadata{
+				WithControlMetadata(storage.ControlMetadata{
 					Path:       filepath.Join(testDir, "control"),
 					DevicePath: "/dev/something",
 				}).
@@ -752,11 +756,14 @@ func TestServerConfig_Validation(t *testing.T) {
 							WithStorageClass("ram").
 							WithScmRamdiskSize(1).
 							WithScmMountPoint("/foo"),
-					)),
+					).
+					WithStorageControlMetadataPath(filepath.Join(testDir, "control")).
+					WithStorageControlMetadataDevice("/dev/something"),
+				),
 		},
 		"control metadata has path only": {
 			extraConfig: func(c *Server) *Server {
-				return c.WithControlMetadata(ControlMetadata{
+				return c.WithControlMetadata(storage.ControlMetadata{
 					Path: filepath.Join(testDir, "control"),
 				}).
 					WithEngines(defaultEngineCfg().
@@ -769,7 +776,7 @@ func TestServerConfig_Validation(t *testing.T) {
 			},
 			expConfig: baseCfg().
 				WithAccessPoints("hostname1:10001").
-				WithControlMetadata(ControlMetadata{
+				WithControlMetadata(storage.ControlMetadata{
 					Path: filepath.Join(testDir, "control"),
 				}).
 				WithEngines(defaultEngineCfg().
@@ -778,11 +785,14 @@ func TestServerConfig_Validation(t *testing.T) {
 							WithStorageClass("ram").
 							WithScmRamdiskSize(1).
 							WithScmMountPoint("/foo"),
-					)),
+					).
+					WithStorageControlMetadataPath(filepath.Join(testDir, "control")).
+					WithStorageControlMetadataDevice(""),
+				),
 		},
 		"control metadata has device only": {
 			extraConfig: func(c *Server) *Server {
-				return c.WithControlMetadata(ControlMetadata{
+				return c.WithControlMetadata(storage.ControlMetadata{
 					DevicePath: "/dev/sdb0",
 				}).
 					WithEngines(defaultEngineCfg().

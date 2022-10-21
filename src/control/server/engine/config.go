@@ -372,6 +372,18 @@ func (c *Config) WithStorageNumaNodeIndex(nodeIndex uint) *Config {
 	return c
 }
 
+// WithStorageControlMetadataPath sets the metadata path to be used by this instance.
+func (c *Config) WithStorageControlMetadataPath(path string) *Config {
+	c.Storage.ControlMetadata.Path = path
+	return c
+}
+
+// WithStorageControlMetadataDevice sets the metadata device to be used by this instance.
+func (c *Config) WithStorageControlMetadataDevice(device string) *Config {
+	c.Storage.ControlMetadata.DevicePath = device
+	return c
+}
+
 // WithSocketDir sets the path to the instance's dRPC socket directory.
 func (c *Config) WithSocketDir(dir string) *Config {
 	c.SocketDir = dir
