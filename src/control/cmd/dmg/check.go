@@ -190,7 +190,25 @@ type checkQueryCmd struct {
 }
 
 func (cmd *checkPoolCmdBase) printQueryResp(resp *control.SystemCheckQueryResp) {
-	cmd.Infof("Current phase: %s", resp.InsPhase)
+	cmd.Info("DAOS System Checker Info")
+	statusMsg := fmt.Sprintf("Current status: %s", resp.Status)
+	if resp.Status > control.SystemCheckStatusInit && resp.Status < control.SystemCheckStatusCompleted {
+		statusMsg += fmt.Sprintf(" (started at: %s)", resp.StartTime)
+	}
+	cmd.Infof("  %s", statusMsg)
+	cmd.Infof("  Current phase: %s (%s)", resp.ScanPhase, resp.ScanPhase.Description())
+
+	if resp.ScanPhase >= control.SystemCheckScanPhasePoolMembership && resp.ScanPhase < control.SystemCheckScanPhaseDone {
+		cmd.Infof("  Checking %d pools", len(resp.Pools))
+		if len(resp.Pools) > 0 {
+			cmd.Info("\nPer-Pool Checker Info:")
+			for _, pool := range resp.Pools {
+				// FIXME: Gross debug output for now.
+				cmd.Infof("  %+v", pool)
+			}
+			cmd.Info("\n")
+		}
+	}
 
 	if len(resp.Reports) == 0 {
 		cmd.Infof("No reports to display")
