@@ -15,7 +15,7 @@
 
 // To use a test branch (i.e. PR) until it lands to master
 // I.e. for testing library changes
-@Library(value=['pipeline-lib@bmurrell/fix-pr-repos','system-pipeline-lib@bmurrell/test-images') _
+@Library(value=['pipeline-lib@bmurrell/fix-pr-repos','system-pipeline-lib@bmurrell/test-images']) _
 
 job_status_internal = [:]
 
@@ -31,7 +31,7 @@ void job_status_write() {
                                        returnText: true
 
     // Need to use shell script for creating files that are not
-    // in the workspace.
+    // in the workspace.    ansible-role-snapshot_host-branch: bmurrell/always-use-CI-image-in-ci
     sh label: "Write jenkins_job_status ${fileName}",
        script: "echo \"${job_status_text}\" >> ${fileName}"
 }
