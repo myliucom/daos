@@ -256,6 +256,15 @@ post_provision_config_nodes() {
                      slurm-example-configs slurmctld slurm-slurmmd
     fi
 
+    lsb_release -a
+
+    # start with everything fully up-to-date
+    # all subsequent package installs beyond this will install the newest packages
+    if ! retry_dnf 600 --setopt=best=0 upgrade; then
+        dump_repos
+        return 1
+    fi
+
     if lspci | grep "ConnectX-6"; then
         # Remove OPA and install MOFED
         install_mofed
@@ -306,15 +315,6 @@ post_provision_config_nodes() {
     fi
 
     distro_custom
-
-    lsb_release -a
-
-    # now make sure everything is fully up-to-date
-    # shellcheck disable=SC2154
-    if ! retry_dnf 600 --setopt=best=0 upgrade --exclude "$EXCLUDE_UPGRADE"; then
-        dump_repos
-        return 1
-    fi
 
     lsb_release -a
 

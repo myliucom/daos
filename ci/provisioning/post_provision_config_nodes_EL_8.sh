@@ -21,7 +21,6 @@ distro_custom() {
 }
 
 install_mofed() {
-
     MLNX_VER_NUM=5.6-2.0.9.0
     if [ -z "$MLNX_VER_NUM" ]; then
         echo "MLNX_VER_NUM is not set"
@@ -120,7 +119,7 @@ install_mofed() {
     repo_url=https://artifactory.dc.hpdd.intel.com/artifactory/mlnx_ofed/"$MLNX_VER_NUM-rhel$gversion"-x86_64/
     dnf -y config-manager --add-repo="$repo_url"
     curl -L -O "$repo_url"RPM-GPG-KEY-Mellanox
-    dnf -y config-manager --save --setopt="$(url_to_reoo "$repo_url")".gpgcheck=1
+    dnf -y config-manager --save --setopt="$(url_to_repo "$repo_url")".gpgcheck=1
     rpm --import RPM-GPG-KEY-Mellanox
     rm -f RPM-GPG-KEY-Mellanox
     dnf repolist || true
