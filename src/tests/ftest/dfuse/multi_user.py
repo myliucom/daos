@@ -24,8 +24,6 @@ class MultiUser(DfuseTestBase):
         self.add_pool(connect=False)
         self.add_container(self.pool)
 
-        self.load_dfuse(self.hostlist_clients)
-
         self.start_dfuse(self.hostlist_clients, self.pool, self.container)
 
         root_dir = self.dfuse.mount_dir.value
@@ -33,35 +31,22 @@ class MultiUser(DfuseTestBase):
         ret = general_utils.run_pcmd(self.hostlist_clients,
                                      'stat {}'.format(root_dir), expect_rc=0)
         ret0 = ret[0]
-        print(ret0)
+        self.log.info(ret0)
         self.assertEqual(ret0['exit_status'], 0)
 
         ret = general_utils.run_pcmd(self.hostlist_clients,
                                      'sudo stat {}'.format(root_dir), expect_rc=0)
         ret0 = ret[0]
-        print(ret0)
+        self.log.info(ret0)
         self.assertEqual(ret0['exit_status'], 0)
 
         self.get_dmg_command().pool_update_acl(self.pool.label, entry="A::root@:rw")
 
-        ret = general_utils.run_pcmd(
-            self.hostlist_clients,
-            'sudo daos container create --type POSIX --path {}/new-cont'.format(root_dir),
-            expect_rc=0)
-        ret0 = ret[0]
-        print(ret0)
-        self.assertEqual(ret0['exit_status'], 0)
-
-        ret = general_utils.run_pcmd(
-            self.hostlist_clients,
-            'daos container get-attr --path {}/new-cont'.format(root_dir),
-            expect_rc=0)
-        ret0 = ret[0]
-        print(ret0)
-        self.assertEqual(ret0['exit_status'], 0)
+        cont = self.get_container(self.pool, path='{}/new-cont'.format(root_dir))
+        self.get_daos_command().container_get_attr(self.pool.identifier, cont.label.value, None)
 
         ret = general_utils.run_pcmd(self.hostlist_clients,
                                      'ls -l {}'.format(root_dir), expect_rc=0)
         ret0 = ret[0]
-        print(ret0)
+        self.log.info(ret0)
         self.assertEqual(ret0['exit_status'], 0)
