@@ -31,89 +31,79 @@ install_mofed() {
 
     # Remove omnipath software
     # shellcheck disable=SC2046
-    dnf -y remove $(rpm -q opa-address-resolution \
-                           opa-basic-tools \
-                           opa-fastfabric \
-                           opa-libopamgt | grep -v 'is not installed')
+    time dnf -y remove $(rpm -q opa-address-resolution \
+                                opa-basic-tools \
+                                opa-fastfabric \
+                                opa-libopamgt \
+                                compat-openmpi16 \
+                                compat-openmpi16-devel \
+                                openmpi \
+                                openmpi-devel \
+                                ompi \
+                                ompi-debuginfo \
+                                ompi-devel | grep -v 'is not installed')
     
-    # shellcheck disable=SC2046
-    dnf -y remove $(rpm -q compat-openmpi16 \
-                           compat-openmpi16-devel \
-                           openmpi \
-                           openmpi-devel \
-                           ompi \
-                           ompi-debuginfo \
-                           ompi-devel | grep -v 'is not installed')
-    
-    if [ -e /usr/local/sbin/set_local_repos.sh ]; then
-        /usr/local/sbin/set_local_repos.sh artifactory
-    fi
-    
-    kernel_ver="$(uname -r)"
-    if ! dnf -y install bc \
-                        chkconfig \
-                        elfutils-libelf-devel \
-                        gcc gcc-gfortran gdb-headless \
-                        httpd \
-                        "kernel-devel-$kernel_ver" \
-                        "kernel-modules-extra-$kernel_ver" \
-                        kernel-rpm-macros \
-                        libnsl libxslt lsof \
-                        mariadb-server mod_ssl \
-                        net-snmp net-snmp-libs net-snmp-utils \
-                        pciutils perl php \
-                        python36-devel python3-pyOpenSSL \
-                        python3-virtualenv \
-                        rpm-build \
-                        tcl tcsh tk unixODBC; then
-        dnf repolist || true
-        dnf --showduplicates search kernel-{devel,modules_extra} || true
-        dnf --disablerepo=\* --enablerepo=daos_ci-alma8-base-artifactory repoquery -a || true
-        dnf --disablerepo=\* --enablerepo=daos_ci-alma8-powertools-artifactory repoquery -a || true
-        for f in /etc/yum.repos.d/*.repo; do
-            echo "--------- $f ---------"
-            cat "$f"
-        done
-        /usr/libexec/platform-python -c 'import dnf, json; db = dnf.dnf.Base(); print(json.dumps(db.conf.substitutions, indent=2))' || true
-        ls -l /etc/dnf/vars/
-        grep . /etc/dnf/vars/*
-        dnf -y install bc \
-                       chkconfig \
-                       elfutils-libelf-devel \
-                       gcc gcc-gfortran gdb-headless \
-                       httpd \
-                       kernel-devel \
-                       kernel-modules-extra \
-                       kernel-rpm-macros \
-                       libnsl libxslt lsof \
-                       mariadb-server mod_ssl \
-                       net-snmp net-snmp-libs net-snmp-utils \
-                       pciutils perl php \
-                       python36-devel python3-pyOpenSSL \
-                       python3-virtualenv \
-                       rpm-build \
-                       tcl tcsh tk unixODBC
-    fi
-    
-    dnf -y list --showduplicates perftest ucx-knem ucx
+    #kernel_ver="$(uname -r)"
+    #if ! dnf -y install bc \
+    #                    chkconfig \
+    #                    elfutils-libelf-devel \
+    #                    gcc gcc-gfortran gdb-headless \
+    #                    httpd \
+    #                    "kernel-devel-$kernel_ver" \
+    #                    "kernel-modules-extra-$kernel_ver" \
+    #                    kernel-rpm-macros \
+    #                    libnsl libxslt lsof \
+    #                    mariadb-server mod_ssl \
+    #                    net-snmp net-snmp-libs net-snmp-utils \
+    #                    pciutils perl php \
+    #                    python36-devel python3-pyOpenSSL \
+    #                    python3-virtualenv \
+    #                    rpm-build \
+    #                    tcl tcsh tk unixODBC; then
+    #    dnf repolist || true
+    #    dnf --showduplicates search kernel-{devel,modules_extra} || true
+    #    dnf --disablerepo=\* --enablerepo=daos_ci-alma8-base-artifactory repoquery -a || true
+    #    dnf --disablerepo=\* --enablerepo=daos_ci-alma8-powertools-artifactory repoquery -a || true
+    #    for f in /etc/yum.repos.d/*.repo; do
+    #        echo "--------- $f ---------"
+    #        cat "$f"
+    #    done
+    #    /usr/libexec/platform-python -c 'import dnf, json; db = dnf.dnf.Base(); print(json.dumps(db.conf.substitutions, indent=2))' || true
+    #    ls -l /etc/dnf/vars/
+    #    grep . /etc/dnf/vars/*
+    #    dnf -y install bc \
+    #                   chkconfig \
+    #                   elfutils-libelf-devel \
+    #                   gcc gcc-gfortran gdb-headless \
+    #                   httpd \
+    #                   kernel-devel \
+    #                   kernel-modules-extra \
+    #                   kernel-rpm-macros \
+    #                   libnsl libxslt lsof \
+    #                   mariadb-server mod_ssl \
+    #                   net-snmp net-snmp-libs net-snmp-utils \
+    #                   pciutils perl php \
+    #                   python36-devel python3-pyOpenSSL \
+    #                   python3-virtualenv \
+    #                   rpm-build \
+    #                   tcl tcsh tk unixODBC
+    #fi
+    #
+    #dnf -y list --showduplicates perftest ucx-knem ucx
     
     stream=false
-    cversion="$(lsb_release -sr)"
-    if [ "$cversion" == "8" ]; then
+    gversion="$(lsb_release -sr)"
+    if [ "$gversion" == "8" ]; then
         gversion="8.6"
         stream=true
-    else
-        if [[ $cversion = *.*.* ]]; then
-            gversion="${cversion%.*}"
-        else
-            gversion="$cversion"
-        fi
+     elif [[ $gversion = *.*.* ]]; then
+        gversion="${gversion%.*}"
     fi
     
-    # We need this temporarily on 8.4+
-    if [ "$gversion" != "8.3" ]; then
-        sudo dnf install --assumeyes compat-hwloc1 hwloc-devel
-    fi
+    ## We need this temporarily on 8.4+
+    #if [ "$gversion" != "8.3" ]; then
+    #    sudo dnf install --assumeyes compat-hwloc1 hwloc-devel
+    #fi
     
     #if $stream || [ "$gversion" = "8.6" ]; then
     #  MLNX_VER_NUM="5.6-2.0.9.0"
@@ -135,13 +125,13 @@ install_mofed() {
     rm -f RPM-GPG-KEY-Mellanox
     dnf repolist || true
 
-    dnf -y install mlnx-ofed-basic
+    time dnf -y install mlnx-ofed-basic
 
     # now, upgrade firmware
-    dnf -y install mlnx-fw-updater
+    time dnf -y install mlnx-fw-updater
 
     # Make sure that tools are present. 
-    ls /usr/bin/ib_* /usr/bin/ibv_*
+    #ls /usr/bin/ib_* /usr/bin/ibv_*
     
     dnf list --showduplicates perftest
     if [ "$gversion" == "8.5" ]; then
