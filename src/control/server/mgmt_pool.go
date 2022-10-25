@@ -231,6 +231,7 @@ func (svc *mgmtSvc) PoolCreate(ctx context.Context, req *mgmtpb.PoolCreateReq) (
 	if err := svc.checkLeaderRequest(req); err != nil {
 		return nil, err
 	}
+	print("RYON -> TODO: Check system properties and set pool properties accordingly!\n")
 
 	svc.log.Debugf("MgmtSvc.PoolCreate dispatch, req:%s\n", mgmtpb.Debug(req))
 
