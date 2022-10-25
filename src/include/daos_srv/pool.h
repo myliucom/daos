@@ -362,7 +362,11 @@ struct ds_pool_clue {
 	int				 pc_rc;
 	uint32_t			 pc_label_len;
 	uint32_t			 pc_tgt_nr;
-	uint32_t			 pc_padding;
+	/*
+	 * DAOS check phase for current pool shard. Different pool shards may claim different
+	 * check phase because some shards may has ever missed the RPC for check phase update.
+	 */
+	uint32_t			 pc_phase;
 	struct ds_pool_svc_clue		*pc_svc_clue;
 	char				*pc_label;
 	uint32_t			*pc_tgt_status;
