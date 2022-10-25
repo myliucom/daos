@@ -92,6 +92,7 @@ type (
 		onRaftShutdown     []onRaftShutdownFn
 		shutdownCb         context.CancelFunc
 		shutdownErrCh      chan error
+		poolLocks          poolLockMap
 
 		data *dbData
 	}
@@ -260,6 +261,8 @@ func NewDatabase(log logging.Logger, cfg *DatabaseConfig) (*Database, error) {
 			SchemaVersion: CurrentSchemaVersion,
 		},
 	}
+	// NB: We may remove this once the locking stuff is solid.
+	db.poolLocks.log = log
 
 	return db, nil
 }
@@ -898,13 +901,40 @@ func (db *Database) FindPoolServiceByLabel(label string) (*system.PoolService, e
 	return nil, system.ErrPoolLabelNotFound(label)
 }
 
+func (db *Database) TakePoolLock(ctx context.Context, uuid uuid.UUID) (*PoolLock, error) {
+	if err := db.CheckLeader(); err != nil {
+		return nil, err
+	}
+	db.Lock()
+	defer db.Unlock()
+
+	lock, err := getCtxLock(ctx)
+	if err != nil && err != errNoCtxLock {
+		return nil, err
+	} else if lock != nil {
+		if err := db.poolLocks.checkLock(lock); err != nil {
+			return nil, err
+		}
+		if lock.poolUUID == uuid {
+			lock.addRef()
+			return lock, nil
+		}
+	}
+
+	return db.poolLocks.take(uuid)
+}
+
 // AddPoolService creates an entry for a new pool service in the pool database.
-func (db *Database) AddPoolService(ps *system.PoolService) error {
+func (db *Database) AddPoolService(ctx context.Context, ps *system.PoolService) error {
 	if err := db.CheckLeader(); err != nil {
 		return err
 	}
 	db.Lock()
 	defer db.Unlock()
+
+	if err := db.poolLocks.checkLockCtx(ctx); err != nil {
+		return err
+	}
 
 	if p, err := db.FindPoolServiceByUUID(ps.PoolUUID); err == nil {
 		return errors.Errorf("pool %s already exists", p.PoolUUID)
@@ -918,16 +948,20 @@ func (db *Database) AddPoolService(ps *system.PoolService) error {
 }
 
 // RemovePoolService removes a pool database entry.
-func (db *Database) RemovePoolService(uuid uuid.UUID) error {
+func (db *Database) RemovePoolService(ctx context.Context, poolUUID uuid.UUID) error {
 	if err := db.CheckLeader(); err != nil {
 		return err
 	}
 	db.Lock()
 	defer db.Unlock()
 
-	ps, err := db.FindPoolServiceByUUID(uuid)
+	if err := db.poolLocks.checkLockCtx(ctx); err != nil {
+		return err
+	}
+
+	ps, err := db.FindPoolServiceByUUID(poolUUID)
 	if err != nil {
-		return errors.Wrapf(err, "failed to retrieve pool %s", uuid)
+		return errors.Wrapf(err, "failed to retrieve pool %s", poolUUID)
 	}
 
 	if err := db.submitPoolUpdate(raftOpRemovePoolService, ps); err != nil {
@@ -938,12 +972,16 @@ func (db *Database) RemovePoolService(uuid uuid.UUID) error {
 }
 
 // UpdatePoolService updates an existing pool database entry.
-func (db *Database) UpdatePoolService(ps *system.PoolService) error {
+func (db *Database) UpdatePoolService(ctx context.Context, ps *system.PoolService) error {
 	if err := db.CheckLeader(); err != nil {
 		return err
 	}
 	db.Lock()
 	defer db.Unlock()
+
+	if err := db.poolLocks.checkLockCtx(ctx); err != nil {
+		return err
+	}
 
 	p, err := db.FindPoolServiceByUUID(ps.PoolUUID)
 	if err != nil {
@@ -982,24 +1020,34 @@ func (db *Database) handlePoolRepsUpdate(evt *events.RASEvent) {
 	db.log.Debugf("processing RAS event %q for pool %s with info %+v on host %q",
 		evt.Msg, evt.PoolUUID, ei, evt.Hostname)
 
-	uuid, err := uuid.Parse(evt.PoolUUID)
+	poolUUID, err := uuid.Parse(evt.PoolUUID)
 	if err != nil {
 		db.log.Errorf("failed to parse pool UUID %q: %s", evt.PoolUUID, err)
 		return
 	}
 
-	ps, err := db.FindPoolServiceByUUID(uuid)
+	ps, err := db.FindPoolServiceByUUID(poolUUID)
 	if err != nil {
 		db.log.Errorf("failed to find pool with UUID %q: %s", evt.PoolUUID, err)
 		return
 	}
 
+	ctx := context.Background()
+	lock, err := db.TakePoolLock(ctx, poolUUID)
+	if err != nil {
+		if ps.State == system.PoolServiceStateReady {
+			db.log.Errorf("failed to take lock for pool svc update: %s", err)
+		}
+		return
+	}
+	defer lock.Release()
+
 	db.log.Debugf("update pool %s (state=%s) svc ranks %v->%v",
-		ps.PoolUUID, ps.State, ps.Replicas, ei.SvcReplicas)
+		dbgUuidStr(ps.PoolUUID), ps.State, ps.Replicas, ei.SvcReplicas)
 
 	ps.Replicas = ranklist.RanksFromUint32(ei.SvcReplicas)
 
-	if err := db.UpdatePoolService(ps); err != nil {
+	if err := db.UpdatePoolService(lock.WithContext(ctx), ps); err != nil {
 		db.log.Errorf("failed to apply pool service update: %s", err)
 	}
 }
@@ -1058,4 +1106,8 @@ func (db *Database) GetSystemAttrs(keys []string, filterFn func(string) bool) (m
 		return nil, system.ErrSystemAttrNotFound(k)
 	}
 	return out, nil
+}
+
+func dbgUuidStr(u uuid.UUID) string {
+	return u.String()[0:8]
 }

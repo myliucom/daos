@@ -21,6 +21,7 @@ import (
 	"go.etcd.io/bbolt"
 	"google.golang.org/grpc"
 
+	"github.com/daos-stack/daos/src/control/common"
 	"github.com/daos-stack/daos/src/control/logging"
 	"github.com/daos-stack/daos/src/control/system"
 )
@@ -411,7 +412,7 @@ func (db *Database) submitMemberUpdate(op raftOp, m *memberUpdate) error {
 	if err != nil {
 		return err
 	}
-	db.log.Debugf("member %d:%x updated @ %s", m.Member.Rank, m.Member.Incarnation, m.Member.LastUpdate)
+	db.log.Debugf("member %d:%x updated @ %s", m.Member.Rank, m.Member.Incarnation, common.FormatTime(m.Member.LastUpdate))
 	return db.submitRaftUpdate(data)
 }
 
@@ -423,7 +424,7 @@ func (db *Database) submitPoolUpdate(op raftOp, ps *system.PoolService) error {
 	if err != nil {
 		return err
 	}
-	db.log.Debugf("pool %s updated @ %s", ps.PoolUUID, ps.LastUpdate)
+	db.log.Debugf("pool %s (%s) updated @ %s", dbgUuidStr(ps.PoolUUID), ps.State, common.FormatTime(ps.LastUpdate))
 	return db.submitRaftUpdate(data)
 }
 
