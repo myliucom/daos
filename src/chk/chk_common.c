@@ -677,24 +677,28 @@ chk_pending_destroy(struct chk_pending_rec *cpr)
 }
 
 int
-chk_ins_init(struct chk_instance *ins)
+chk_ins_init(struct chk_instance **p_ins)
 {
-	int	rc;
+	struct chk_instance	*ins = NULL;
+	int			 rc = 0;
 
-	D_ASSERT(ins != NULL);
+	D_ASSERT(p_ins != NULL);
 
-	D_INIT_LIST_HEAD(&ins->ci_pending_list);
-	ins->ci_sched = ABT_THREAD_NULL;
+	D_ALLOC_PTR(ins);
+	if (ins == NULL)
+		D_GOTO(out_init, rc = -DER_NOMEM);
+
 	ins->ci_seq = crt_hlc_get();
-	ins->ci_pending_hdl = DAOS_HDL_INVAL;
+	ins->ci_sched = ABT_THREAD_NULL;
 
-	if (ins->ci_is_leader) {
-		ins->ci_rank_hdl = DAOS_HDL_INVAL;
-		D_INIT_LIST_HEAD(&ins->ci_rank_list);
-	} else {
-		ins->ci_pool_hdl = DAOS_HDL_INVAL;
-		D_INIT_LIST_HEAD(&ins->ci_pool_list);
-	}
+	ins->ci_rank_hdl = DAOS_HDL_INVAL;
+	D_INIT_LIST_HEAD(&ins->ci_rank_list);
+
+	ins->ci_pool_hdl = DAOS_HDL_INVAL;
+	D_INIT_LIST_HEAD(&ins->ci_pool_list);
+
+	ins->ci_pending_hdl = DAOS_HDL_INVAL;
+	D_INIT_LIST_HEAD(&ins->ci_pending_list);
 
 	rc = ABT_rwlock_create(&ins->ci_abt_lock);
 	if (rc != ABT_SUCCESS)
@@ -712,17 +716,23 @@ chk_ins_init(struct chk_instance *ins)
 
 out_mutex:
 	ABT_mutex_free(&ins->ci_abt_mutex);
-	ins->ci_abt_mutex = ABT_MUTEX_NULL;
 out_lock:
 	ABT_rwlock_free(&ins->ci_abt_lock);
-	ins->ci_abt_lock = ABT_RWLOCK_NULL;
 out_init:
+	if (rc == 0)
+		*p_ins = ins;
+
 	return rc;
 }
 
 void
-chk_ins_fini(struct chk_instance *ins)
+chk_ins_fini(struct chk_instance **p_ins)
 {
+	struct chk_instance	*ins;
+
+	D_ASSERT(p_ins != NULL);
+
+	ins = *p_ins;
 	if (ins == NULL)
 		return;
 
@@ -733,16 +743,14 @@ chk_ins_fini(struct chk_instance *ins)
 
 	d_rank_list_free(ins->ci_ranks);
 
+	D_ASSERT(daos_handle_is_inval(ins->ci_rank_hdl));
+	D_ASSERT(d_list_empty(&ins->ci_rank_list));
+
+	D_ASSERT(daos_handle_is_inval(ins->ci_pool_hdl));
+	D_ASSERT(d_list_empty(&ins->ci_pool_list));
+
 	D_ASSERT(daos_handle_is_inval(ins->ci_pending_hdl));
 	D_ASSERT(d_list_empty(&ins->ci_pending_list));
-
-	if (ins->ci_is_leader) {
-		D_ASSERT(daos_handle_is_inval(ins->ci_rank_hdl));
-		D_ASSERT(d_list_empty(&ins->ci_rank_list));
-	} else {
-		D_ASSERT(daos_handle_is_inval(ins->ci_pool_hdl));
-		D_ASSERT(d_list_empty(&ins->ci_pool_list));
-	}
 
 	if (ins->ci_sched != ABT_THREAD_NULL)
 		ABT_thread_free(&ins->ci_sched);
@@ -757,4 +765,5 @@ chk_ins_fini(struct chk_instance *ins)
 		ABT_rwlock_free(&ins->ci_abt_lock);
 
 	D_FREE(ins);
+	*p_ins = NULL;
 }

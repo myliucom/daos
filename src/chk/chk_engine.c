@@ -167,35 +167,6 @@ btr_ops_t chk_cont_ops = {
 };
 
 static void
-chk_destroy_pool_tree(struct chk_instance *ins)
-{
-	struct chk_pool_rec	*cpr;
-	struct chk_pool_rec	*tmp;
-
-	/*
-	 * Take reference on each pool record to guarantee that the pool list will not be
-	 * broken when we traverse the pool list even if there is yield during the travel.
-	 */
-	d_list_for_each_entry(cpr, &ins->ci_pool_list, cpr_link)
-		chk_pool_get(cpr);
-
-	/*
-	 * Once the pool record is deleted from the tree, the initial reference held when
-	 * created will be released: if it is current ULT delete the record from the tree,
-	 * then it will be via chk_pool_free()->chk_pool_put(). Otherwise, if it has been
-	 * deleted from the tree by others, then related logic will call chk_pool_put().
-	 */
-	chk_destroy_tree(&ins->ci_pool_hdl, &ins->ci_pool_btr);
-
-	d_list_for_each_entry_safe(cpr, tmp, &ins->ci_pool_list, cpr_link) {
-		chk_pool_wait(cpr);
-		chk_pool_shutdown(cpr);
-		/* Release the reference held just above. */
-		chk_pool_put(cpr);
-	}
-}
-
-static void
 chk_pool_stop_one(struct chk_instance *ins, uuid_t uuid, uint32_t status, uint32_t phase, int *ret)
 {
 	struct chk_bookmark	*cbk;
@@ -3273,11 +3244,7 @@ chk_engine_init(void)
 	struct chk_bookmark	*cbk;
 	int			 rc;
 
-	D_ALLOC(chk_engine, sizeof(*chk_engine));
-	if (chk_engine == NULL)
-		D_GOTO(out, rc = -DER_NOMEM);
-
-	rc = chk_ins_init(chk_engine);
+	rc = chk_ins_init(&chk_engine);
 	if (rc != 0)
 		goto fini;
 
@@ -3291,7 +3258,7 @@ chk_engine_init(void)
 	cbk = &chk_engine->ci_bk;
 	rc = chk_bk_fetch_engine(cbk);
 	if (rc == -DER_NONEXIST)
-		rc = 0;
+		goto prop;
 
 	/* It may be caused by local data corruption, let's break. */
 	if (rc != 0)
@@ -3303,24 +3270,33 @@ chk_engine_init(void)
 		D_GOTO(fini, rc = -DER_IO);
 	}
 
+	if (cbk->cb_ins_status == CHK__CHECK_INST_STATUS__CIS_RUNNING) {
+		/*
+		 * Leader crashed before normally exit, reset the status as 'PAUSED'
+		 * to avoid blocking next CHK_START.
+		 */
+		cbk->cb_ins_status = CHK__CHECK_INST_STATUS__CIS_PAUSED;
+		cbk->cb_time.ct_stop_time = time(NULL);
+		rc = chk_bk_update_engine(cbk);
+		if (rc != 0) {
+			D_ERROR(DF_ENGINE" failed to reset status as 'PAUSED': "DF_RC"\n",
+				DP_ENGINE(chk_engine), DP_RC(rc));
+			goto fini;
+		}
+	}
+
+prop:
 	rc = chk_prop_fetch(&chk_engine->ci_prop, NULL);
 	if (rc == -DER_NONEXIST)
 		rc = 0;
-
-	if (rc != 0)
-		goto fini;
-
-	goto out;
-
 fini:
-	chk_ins_fini(chk_engine);
-	chk_engine = NULL;
-out:
+	if (rc != 0)
+		chk_ins_fini(&chk_engine);
 	return rc;
 }
 
 void
 chk_engine_fini(void)
 {
-	chk_ins_fini(chk_engine);
+	chk_ins_fini(&chk_engine);
 }
