@@ -50,6 +50,14 @@ type ControlMetadata struct {
 	DevicePath string `yaml:"device"`
 }
 
+// Directory returns the full path to the directory where the control plane metadata is saved.
+func (cm ControlMetadata) Directory() string {
+	if cm.Path == "" {
+		return ""
+	}
+	return filepath.Join(cm.Path, "daos_control")
+}
+
 // Class indicates a specific type of storage.
 type Class string
 

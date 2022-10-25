@@ -24,7 +24,11 @@ import (
 // SystemProvider provides operating system capabilities.
 type SystemProvider interface {
 	system.IsMountedProvider
+	system.MountProvider
 	GetfsUsage(string) (uint64, uint64, error)
+	Mkfs(fsType, device string, force bool) error
+	Getfs(device string) (string, error)
+	Stat(string) (os.FileInfo, error)
 }
 
 // Provider provides storage specific capabilities.
@@ -204,22 +208,28 @@ func (p *Provider) FormatControlMetadata() error {
 		return nil
 	}
 
-	// TODO KJ: Security checks - Ensure the mount point isn't root or any system directory.
-	// How do we deal with "formatting" an existing directory if no device is provided?
-	// e.g. something that might have content unrelated to DAOS that we would not want to delete.
-	// Should we maintain a list of files OK to delete from this directory?
-
-	// TODO KJ: Do we need to use the privileged helper for this?
 	if err := os.MkdirAll(p.engineStorage.ControlMetadata.Path, 0755); err != nil && !os.IsExist(err) {
-		return errors.Wrap(err, "creating control metadata directory")
+		return errors.Wrap(err, "creating control metadata root")
 	}
 
-	if p.engineStorage.ControlMetadata.DevicePath == "" {
-		// Check existing filesystem is ext4 (i.e. not NFS or any other shared FS)
-		return nil
+	// TODO KJ: Check extant filesystem type for folder - cannot be NFS
+
+	if p.engineStorage.ControlMetadata.DevicePath != "" {
+		if err := p.Sys.Mkfs("ext4", p.engineStorage.ControlMetadata.DevicePath, true); err != nil {
+			return errors.Wrap(err, "formatting control metadata device filesystem")
+		}
+		if err := p.Sys.Mount(p.engineStorage.ControlMetadata.DevicePath, p.engineStorage.ControlMetadata.Path, "ext4", 0, ""); err != nil {
+			return errors.Wrap(err, "mounting control metadata device")
+		}
 	}
 
-	// TODO KJ: mkfs ext4 on device
+	if err := os.RemoveAll(p.engineStorage.ControlMetadata.Directory()); err != nil {
+		return errors.Wrap(err, "removing old control metadata subdirectory")
+	}
+
+	if err := os.Mkdir(p.engineStorage.ControlMetadata.Directory(), 0755); err != nil {
+		return errors.Wrap(err, "creating control metadata subdirectory")
+	}
 
 	return nil
 }

@@ -481,3 +481,22 @@ acceleration:
 		})
 	}
 }
+
+func TestStorage_ControlMetadata_Directory(t *testing.T) {
+	for name, tc := range map[string]struct {
+		cm        ControlMetadata
+		expResult string
+	}{
+		"empty": {},
+		"path": {
+			cm: ControlMetadata{
+				Path: "/some/thing",
+			},
+			expResult: "/some/thing/daos_control",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			test.AssertEqual(t, tc.expResult, tc.cm.Directory(), "")
+		})
+	}
+}
