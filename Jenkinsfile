@@ -31,7 +31,7 @@ void job_status_write() {
                                        returnText: true
 
     // Need to use shell script for creating files that are not
-    // in the workspace.    ansible-role-snapshot_host-branch: bmurrell/always-use-CI-image-in-ci
+    // in the workspace.
     sh label: "Write jenkins_job_status ${fileName}",
        script: "echo \"${job_status_text}\" >> ${fileName}"
 }
