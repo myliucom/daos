@@ -1,4 +1,8 @@
 #!/bin/bash
+# 
+#  (C) Copyright 2021-2022 Intel Corporation.
+# 
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
 
 bootstrap_dnf() {
     systemctl enable postfix.service
