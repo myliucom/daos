@@ -1790,7 +1790,7 @@ dfs_cont_create(daos_handle_t poh, uuid_t *cuuid, dfs_attr_t *attr,
 			dattr.da_chunk_size = DFS_DEFAULT_CHUNK_SIZE;
 
 		if (attr->da_hints[0] != 0) {
-			strncpy(dattr.da_hints, attr->da_hints, DAOS_CONT_HINT_MAX_LEN);
+			strncpy(dattr.da_hints, attr->da_hints, DAOS_CONT_HINT_MAX_LEN - 1);
 			dattr.da_hints[DAOS_CONT_HINT_MAX_LEN - 1] = '\0';
 		}
 	} else {
