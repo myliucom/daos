@@ -1012,4 +1012,14 @@ int bio_wal_commit(struct bio_meta_context *mc, uint64_t tx_id, struct umem_acti
  */
 int bio_wal_id_cmp(struct bio_meta_context *mc, uint64_t id1, uint64_t id2);
 
+/*
+ * Replay committed transactions in WAL on post-crash recovery
+ *
+ * \param[in]	mc		BIO meta context
+ * \param[in]	replay_cb	Replay callback for individual action
+ *
+ * \return			Zero on success, negative value on error
+ */
+int bio_wal_replay(struct bio_meta_context *mc, int (*replay_cb)(struct umem_action *act));
+
 #endif /* __BIO_API_H__ */
